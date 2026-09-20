@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Certification {
+  id           String    @id
+  name         String
+  issuer       String?
+  credentialId String?
+  obtainedAt   DateTime? @db.Date
+  expiresAt    DateTime? @db.Date
+  url          String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime
+}
+
+model Education {
+  id          String    @id
+  school      String
+  degree      String
+  field       String?
+  startDate   DateTime  @db.Date
+  endDate     DateTime? @db.Date
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+}
+
+model Experience {
+  id          String    @id
+  company     String
+  role        String
+  location    String?
+  startDate   DateTime  @db.Date
+  endDate     DateTime? @db.Date
+  isCurrent   Boolean   @default(false)
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+}
+
+model Project {
+  id               String            @id
+  slug             String            @unique
+  title            String
+  excerpt          String?
+  description      String?
+  responsibilities String[]          @default([])
+  featured         Boolean           @default(false)
+  status           ProjectStatus     @default(draft)
+  visibility       ProjectVisibility @default(PUBLIC)
+  publishedAt      DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime
+  ProjectMedia     ProjectMedia[]
+  Technology       Technology[]
+
+  @@index([status, visibility, publishedAt])
+}
+
+model ProjectMedia {
+  id        String           @id
+  projectId String
+  url       String
+  type      ProjectMediaType @default(image)
+  alt       String?
+  caption   String?
+  order     Int              @default(0)
+  createdAt DateTime         @default(now())
+  Project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, order])
+}
+
+model SiteSettings {
+  id            String    @id @default("site_settings")
+  siteName      String?
+  tagline       String?
+  description   String?
+  email         String?
+  defaultLocale Locale    @default(en)
+  themeMode     ThemeMode @default(system)
+  aboutMarkdown String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime
+}
+
+model SocialLink {
+  id        String   @id
+  platform  String
+  url       String
+  label     String?
+  isVisible Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+}
+
+model Technology {
+  id        String    @id
+  name      String    @unique
+  slug      String    @unique
+  order     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime
+  Project   Project[]
+}
+
+enum Locale {
+  en
+  fr
+  de
+  es
+}
+
+enum ProjectMediaType {
+  image
+  video
+  embed
+}
+
+enum ProjectStatus {
+  draft
+  published
+  archived
+}
+
+enum ProjectVisibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
+enum ThemeMode {
+  light
+  dark
+  system
+}
