@@ -1,3 +1,5 @@
+import { prisma } from "@/lib/db/prisma";
+
 export type Visibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
 
 export type SiteSettings = {
@@ -219,6 +221,95 @@ export const publicProjects = projects.filter(
   (project) => project.visibility === "PUBLIC",
 );
 
-export function getProjectBySlug(slug: string) {
+function toProjectViewModel(project: {
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  description: string | null;
+  responsibilities: string[];
+  visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
+  featured: boolean;
+  publishedAt: Date | null;
+  Technology: Array<{ name: string }>;
+  ProjectMedia?: Array<{ url: string; alt?: string | null }>;
+}) {
+  const year =
+    project.publishedAt instanceof Date &&
+    !Number.isNaN(project.publishedAt.getTime())
+      ? String(project.publishedAt.getFullYear())
+      : "2024";
+
+  return {
+    slug: project.slug,
+    title: project.title,
+    year,
+    excerpt: project.excerpt ?? "",
+    description: project.description ?? "",
+    responsibilities: project.responsibilities ?? [],
+    technologies: project.Technology.map((technology) => technology.name),
+    visibility: project.visibility,
+    featured: project.featured,
+    privateLabel:
+      project.visibility === "PRIVATE" ? "Private Project" : undefined,
+  };
+}
+
+export async function getPublicProjects() {
+  try {
+    const rows = await prisma.project.findMany({
+      where: {
+        status: "published",
+        visibility: "PUBLIC",
+      },
+      orderBy: [
+        { featured: "desc" },
+        { publishedAt: "desc" },
+        { createdAt: "desc" },
+      ],
+      include: {
+        Technology: {
+          orderBy: { name: "asc" },
+        },
+      },
+    });
+
+    if (rows.length > 0) {
+      return rows.map((project) => toProjectViewModel(project));
+    }
+  } catch {
+    // Fall back to the existing static portfolio data when the database is not yet
+    // populated or unavailable during local development.
+  }
+
+  return publicProjects;
+}
+
+export async function getProjectBySlug(slug: string) {
+  try {
+    const project = await prisma.project.findUnique({
+      where: {
+        slug,
+      },
+      include: {
+        Technology: {
+          orderBy: { name: "asc" },
+        },
+        ProjectMedia: {
+          orderBy: { order: "asc" },
+        },
+      },
+    });
+
+    if (project) {
+      if (project.status !== "published" || project.visibility !== "PUBLIC") {
+        return null;
+      }
+
+      return toProjectViewModel(project);
+    }
+  } catch {
+    // Fall back to static content during local or CI environments without a DB.
+  }
+
   return projects.find((project) => project.slug === slug) ?? null;
 }

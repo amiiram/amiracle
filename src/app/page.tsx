@@ -4,13 +4,15 @@ import { SectionHeading } from "@/components/section-heading";
 import { SiteHeader } from "@/components/site-header";
 import { SocialLinks } from "@/components/social-links";
 import {
+  getPublicProjects,
   notes,
-  publicProjects,
   siteSettings,
   technologies,
 } from "@/lib/portfolio-data";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const publicProjects = await getPublicProjects();
+
   return (
     <>
       <SiteHeader />

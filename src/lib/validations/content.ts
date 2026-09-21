@@ -76,6 +76,16 @@ export const projectSchema = z
   }));
 
 /**
+ * Reusable technology tags. The slug shares the project slug normalization so
+ * both domains stay consistent (trimmed lowercase kebab-case, validated unique
+ * by the database).
+ */
+export const technologySchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  slug: slugString,
+});
+
+/**
  * `ProjectMedia` stores absolute URL references only (object storage or external
  * hosts). No binary payload is ever persisted in PostgreSQL.
  */
@@ -159,6 +169,7 @@ export const certificationSchema = z
   });
 
 export type ProjectInput = z.infer<typeof projectSchema>;
+export type TechnologyInput = z.infer<typeof technologySchema>;
 export type ProjectMediaInput = z.infer<typeof projectMediaSchema>;
 export type ExperienceInput = z.infer<typeof experienceSchema>;
 export type EducationInput = z.infer<typeof educationSchema>;
