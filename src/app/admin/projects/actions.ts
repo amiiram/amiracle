@@ -34,7 +34,7 @@ const ADMIN_PROJECTS_PATH = "/admin/projects";
 
 function normalizePublishedAt(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || !value.trim()) {
-    return null;
+    return "";
   }
 
   return new Date(`${value}T12:00:00.000Z`).toISOString();
@@ -53,12 +53,33 @@ function normalizeResponsibilities(value: FormDataEntryValue | null) {
 
 function toFieldErrors(error: {
   fieldErrors?: Record<string, string[] | undefined>;
-}) {
-  return Object.fromEntries(
-    Object.entries(error.fieldErrors ?? {}).flatMap(([key, value]) => [
-      [key, value ?? []],
-    ]),
-  ) as Record<string, string[]>;
+  issues?: { path: (string | number)[]; message: string }[];
+}): Record<string, string[]> {
+  // If the error has fieldErrors from a flatten operation, use those
+  if (error.fieldErrors) {
+    return Object.fromEntries(
+      Object.entries(error.fieldErrors).flatMap(([key, value]) => [
+        [key, value ?? []],
+      ]),
+    ) as Record<string, string[]>;
+  }
+
+  // Fallback: build field errors from Zod issues directly
+  const fieldErrors: Record<string, string[]> = {};
+
+  if (error.issues) {
+    for (const issue of error.issues) {
+      const [field] = issue.path;
+
+      if (typeof field !== "string") {
+        continue;
+      }
+
+      fieldErrors[field] = [...(fieldErrors[field] ?? []), issue.message];
+    }
+  }
+
+  return fieldErrors;
 }
 
 function getSubmittedValues(formData: FormData): ProjectFormValues {
@@ -143,6 +164,7 @@ export async function createProjectAction(
       return {
         success: false,
         message: `A project with the slug "${parsed.data.slug}" already exists. Use a different slug.`,
+        fieldErrors: { slug: [`The slug "${parsed.data.slug}" is already in use. Choose a different slug.`] },
         values,
       };
     }
@@ -163,6 +185,7 @@ export async function createProjectAction(
         return {
           success: false,
           message: `A project with the slug "${parsed.data.slug}" already exists. Use a different slug.`,
+          fieldErrors: { slug: [`The slug "${parsed.data.slug}" is already in use. Choose a different slug.`] },
           values,
         };
       }
@@ -170,6 +193,7 @@ export async function createProjectAction(
         return {
           success: false,
           message: "One or more selected technology values are invalid.",
+          fieldErrors: { technologyIds: ["One or more selected technology values are invalid."] },
           values,
         };
       }
@@ -182,6 +206,7 @@ export async function createProjectAction(
       return {
         success: false,
         message: "One or more selected technology values are invalid.",
+        fieldErrors: { technologyIds: ["One or more selected technology values are invalid."] },
         values,
       };
     }
@@ -243,6 +268,7 @@ export async function updateProjectAction(
       return {
         success: false,
         message: `A project with the slug "${parsed.data.slug}" already exists. Use a different slug.`,
+        fieldErrors: { slug: [`The slug "${parsed.data.slug}" is already in use. Choose a different slug.`] },
         values,
       };
     }
@@ -263,6 +289,7 @@ export async function updateProjectAction(
         return {
           success: false,
           message: `A project with the slug "${parsed.data.slug}" already exists. Use a different slug.`,
+          fieldErrors: { slug: [`The slug "${parsed.data.slug}" is already in use. Choose a different slug.`] },
           values,
         };
       }
@@ -270,6 +297,7 @@ export async function updateProjectAction(
         return {
           success: false,
           message: "One or more selected technology values are invalid.",
+          fieldErrors: { technologyIds: ["One or more selected technology values are invalid."] },
           values,
         };
       }
@@ -282,6 +310,7 @@ export async function updateProjectAction(
       return {
         success: false,
         message: "One or more selected technology values are invalid.",
+        fieldErrors: { technologyIds: ["One or more selected technology values are invalid."] },
         values,
       };
     }

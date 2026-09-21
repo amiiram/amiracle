@@ -135,6 +135,7 @@ export function ProjectForm({
             Title
           </label>
           <input
+            key={`title-${values.title}`}
             id="title"
             name="title"
             defaultValue={values.title}
@@ -154,6 +155,7 @@ export function ProjectForm({
             Slug
           </label>
           <input
+            key={`slug-${values.slug}`}
             id="slug"
             name="slug"
             defaultValue={values.slug}
@@ -173,6 +175,7 @@ export function ProjectForm({
             Excerpt
           </label>
           <input
+            key={`excerpt-${values.excerpt}`}
             id="excerpt"
             name="excerpt"
             defaultValue={values.excerpt}
@@ -192,6 +195,7 @@ export function ProjectForm({
             Description
           </label>
           <textarea
+            key={`description-${values.description}`}
             id="description"
             name="description"
             defaultValue={values.description}
@@ -215,6 +219,7 @@ export function ProjectForm({
             Responsibilities
           </label>
           <textarea
+            key={`responsibilities-${values.responsibilities}`}
             id="responsibilities"
             name="responsibilities"
             defaultValue={values.responsibilities}
@@ -289,6 +294,7 @@ export function ProjectForm({
             Published date
           </label>
           <input
+            key={`publishedAt-${values.publishedAt}`}
             id="publishedAt"
             name="publishedAt"
             type="date"
@@ -307,6 +313,7 @@ export function ProjectForm({
           <div className="flex items-center justify-start">
             <label className={checkboxClass("featured")}>
               <input
+                key={`featured-${values.featured}`}
                 type="checkbox"
                 name="featured"
                 defaultChecked={values.featured}
@@ -335,6 +342,7 @@ export function ProjectForm({
                 className={`${checkboxClass("technologyIds")} px-3 py-2 text-sm text-slate-200`}
               >
                 <input
+                  key={`${technology.id}-${values.technologyIds.includes(technology.id)}`}
                   type="checkbox"
                   name="technologyIds"
                   value={technology.id}
