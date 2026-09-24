@@ -23,6 +23,17 @@ export default async function EditProjectPage({
           name: true,
         },
       },
+      ProjectMedia: {
+        orderBy: { order: "asc" },
+        select: {
+          id: true,
+          url: true,
+          type: true,
+          alt: true,
+          caption: true,
+          order: true,
+        },
+      },
     },
   });
 
@@ -64,6 +75,13 @@ export default async function EditProjectPage({
             ? project.publishedAt.toISOString()
             : null,
           technologies: project.Technology,
+          media: project.ProjectMedia.map((media) => ({
+            id: media.id,
+            url: media.url,
+            type: media.type,
+            alt: media.alt ?? "",
+            caption: media.caption ?? "",
+          })),
         }}
       />
     </main>

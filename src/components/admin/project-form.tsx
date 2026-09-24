@@ -1,11 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
-
 import type {
   ProjectFormState,
   ProjectFormValues,
+  ProjectMediaFormValues,
 } from "@/app/admin/projects/actions";
+import { MarkdownField } from "@/components/admin/markdown-editor";
+import { ProjectMediaEditor } from "@/components/admin/project-media-editor";
+import { useActionState, useMemo, useState } from "react";
 
 type TechnologyOption = {
   id: string;
@@ -24,6 +26,7 @@ type ProjectDefaults = {
   visibility: string;
   publishedAt: string | null;
   technologies: TechnologyOption[];
+  media?: ProjectMediaFormValues[];
 };
 
 type ProjectFormProps = {
@@ -51,6 +54,7 @@ const emptyValues: ProjectFormValues = {
   featured: false,
   publishedAt: "",
   technologyIds: [],
+  media: [],
 };
 
 const controlBaseClassName =
@@ -85,6 +89,7 @@ function toInitialValues(project?: ProjectDefaults): ProjectFormValues {
     featured: project.featured,
     publishedAt: project.publishedAt ? project.publishedAt.slice(0, 10) : "",
     technologyIds: project.technologies.map((technology) => technology.id),
+    media: project.media ?? [],
   };
 }
 
@@ -112,7 +117,25 @@ export function ProjectForm({
   const [state, formAction, pending] = useActionState(action, initialState);
   const fieldErrors = state.fieldErrors ?? {};
   // Submitted values win, so a failed submission never wipes the form.
-  const values = state.values ?? toInitialValues(project);
+  const initialValues = useMemo(() => toInitialValues(project), [project]);
+  const values = state.values ?? initialValues;
+
+  // Media lives in editor state so reordering is instant. The render-phase
+  // adjustment below adopts the rows the server validated whenever a failed
+  // submission returns them, exactly like the keyed inputs above.
+  const [media, setMedia] = useState<ProjectMediaFormValues[]>(
+    () => state.values?.media ?? initialValues.media,
+  );
+  const [syncedMedia, setSyncedMedia] = useState<ProjectMediaFormValues[]>(
+    () => state.values?.media ?? initialValues.media,
+  );
+
+  const submittedMedia = state.values?.media ?? initialValues.media;
+
+  if (submittedMedia !== syncedMedia) {
+    setSyncedMedia(submittedMedia);
+    setMedia(submittedMedia);
+  }
 
   const hasError = (field: string) => (fieldErrors[field] ?? []).length > 0;
   const errorId = (field: string) => `${field}-error`;
@@ -188,26 +211,25 @@ export function ProjectForm({
         </div>
 
         <div className="space-y-2 md:col-span-2">
-          <label
-            htmlFor="description"
-            className="block text-sm font-medium text-slate-200"
-          >
-            Description
-          </label>
-          <textarea
-            key={`description-${values.description}`}
+          {/* Long-form copy: edited as Markdown and rendered by the site. */}
+          <MarkdownField
             id="description"
             name="description"
+            label="Description"
             defaultValue={values.description}
-            rows={7}
-            aria-invalid={invalid("description")}
-            aria-describedby={describedBy("description")}
-            className={controlClass("description")}
+            projectSlug={values.slug}
+            projectMedia={values.media}
+            fieldErrors={fieldErrors}
             placeholder="Detailed project narrative"
           />
-          <FieldErrors
-            id={errorId("description")}
-            messages={fieldErrors.description}
+        </div>
+
+        <div className="md:col-span-2">
+          <ProjectMediaEditor
+            media={media}
+            onChange={setMedia}
+            fieldErrors={fieldErrors}
+            slugHint={values.slug}
           />
         </div>
 
@@ -371,6 +393,9 @@ export function ProjectForm({
           {state.message}
         </p>
       ) : null}
+
+      {/* The media editor state travels with the form as a JSON payload. */}
+      <input type="hidden" name="mediaJson" value={JSON.stringify(media)} />
 
       <div className="flex items-center justify-end gap-3">
         <button

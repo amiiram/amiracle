@@ -22,11 +22,11 @@ import {
  * `SiteSettings` is an application-enforced singleton, so every write targets
  * the same literal id and the admin UI can never create a second row.
  *
- * Note: no public route currently reads these values from the database (the
- * public pages render the static defaults in `src/lib/portfolio-data.ts`), so
- * revalidation is limited to the admin page that renders this form.
+ * `aboutMarkdown` is read by the public About page through
+ * `getAboutMarkdown()`, so that route is revalidated alongside the admin form.
  */
 const ADMIN_SETTINGS_PATH = "/admin/settings";
+const PUBLIC_ABOUT_PATH = "/about";
 const SAVE_FAILURE_MESSAGE = "Unable to save the settings. Please try again.";
 const LINK_SAVE_FAILURE_MESSAGE =
   "Unable to save this social link. Please try again.";
@@ -114,6 +114,7 @@ export async function updateSiteSettingsAction(
   }
 
   revalidatePath(ADMIN_SETTINGS_PATH);
+  revalidatePath(PUBLIC_ABOUT_PATH);
   redirect(`${ADMIN_SETTINGS_PATH}?status=saved`);
 }
 

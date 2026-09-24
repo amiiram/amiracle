@@ -6,6 +6,7 @@ import type {
   SiteSettingsFormState,
   SiteSettingsFormValues,
 } from "@/app/admin/settings/actions";
+import { MarkdownField } from "@/components/admin/markdown-editor";
 import {
   FieldErrors,
   controlClassName,
@@ -228,25 +229,13 @@ export function SiteSettingsForm({
         </h3>
 
         <div className="space-y-2">
-          <label
-            htmlFor="settings-aboutMarkdown"
-            className="block text-sm font-medium text-slate-200"
-          >
-            About (Markdown)
-          </label>
-          <textarea
+          <MarkdownField
             id="settings-aboutMarkdown"
             name="aboutMarkdown"
+            label="About (Markdown)"
             defaultValue={values.aboutMarkdown}
-            rows={8}
-            aria-invalid={invalid("aboutMarkdown")}
-            aria-describedby={describedBy("aboutMarkdown")}
-            className={controlClass("aboutMarkdown")}
+            fieldErrors={fieldErrors}
             placeholder="## About"
-          />
-          <FieldErrors
-            id={errorId("aboutMarkdown")}
-            messages={fieldErrors.aboutMarkdown}
           />
         </div>
       </section>
