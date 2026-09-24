@@ -3,9 +3,18 @@ import Link from "next/link";
 import { SectionHeading } from "@/components/section-heading";
 import { SiteHeader } from "@/components/site-header";
 import { SocialLinks } from "@/components/social-links";
-import { experiences, siteSettings, technologies } from "@/lib/portfolio-data";
+import { renderMarkdown } from "@/lib/markdown";
+import {
+  experiences,
+  getAboutMarkdown,
+  siteSettings,
+  technologies,
+} from "@/lib/portfolio-data";
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  // Authored in the admin Markdown editor; empty until something is saved.
+  const aboutMarkdown = await getAboutMarkdown();
+
   return (
     <>
       <SiteHeader />
@@ -44,6 +53,14 @@ export default function AboutPage() {
             </ul>
           </div>
         </section>
+
+        {/* Long-form narrative saved from the admin Markdown editor. It uses the
+            same renderer as project pages, and is skipped entirely while empty. */}
+        {aboutMarkdown ? (
+          <section className="content-section">
+            <div className="markdown-body">{renderMarkdown(aboutMarkdown)}</div>
+          </section>
+        ) : null}
 
         <section className="content-section">
           <SectionHeading

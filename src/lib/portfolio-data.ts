@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { SITE_SETTINGS_ID } from "@/lib/validations/site";
 
 export type Visibility = "PUBLIC" | "UNLISTED" | "PRIVATE";
 
@@ -17,6 +18,13 @@ export type SocialLink = {
   kind: "github" | "linkedin" | "email";
 };
 
+export type ProjectMediaItem = {
+  url: string;
+  type: "image" | "video" | "embed";
+  alt: string;
+  caption: string;
+};
+
 export type Project = {
   slug: string;
   title: string;
@@ -28,6 +36,8 @@ export type Project = {
   visibility: Visibility;
   featured: boolean;
   privateLabel?: string;
+  /** Ordered media; the first item is the project banner/cover. */
+  media: ProjectMediaItem[];
 };
 
 export type ExperienceItem = {
@@ -107,6 +117,7 @@ export const projects: Project[] = [
     technologies: ["React", "Node.js", "Video.js", "HLS"],
     visibility: "PUBLIC",
     featured: true,
+    media: [],
   },
   {
     slug: "persian-calendar",
@@ -124,6 +135,7 @@ export const projects: Project[] = [
     technologies: ["React", "TypeScript", "Date-fns"],
     visibility: "PUBLIC",
     featured: true,
+    media: [],
   },
   {
     slug: "creator-platform",
@@ -142,6 +154,7 @@ export const projects: Project[] = [
     visibility: "PRIVATE",
     featured: false,
     privateLabel: "Private Project",
+    media: [],
   },
 ];
 
@@ -231,7 +244,12 @@ function toProjectViewModel(project: {
   featured: boolean;
   publishedAt: Date | null;
   Technology: Array<{ name: string }>;
-  ProjectMedia?: Array<{ url: string; alt?: string | null }>;
+  ProjectMedia?: Array<{
+    url: string;
+    type: "image" | "video" | "embed";
+    alt: string | null;
+    caption: string | null;
+  }>;
 }) {
   const year =
     project.publishedAt instanceof Date &&
@@ -251,6 +269,12 @@ function toProjectViewModel(project: {
     featured: project.featured,
     privateLabel:
       project.visibility === "PRIVATE" ? "Private Project" : undefined,
+    media: (project.ProjectMedia ?? []).map((media) => ({
+      url: media.url,
+      type: media.type,
+      alt: media.alt ?? "",
+      caption: media.caption ?? "",
+    })),
   };
 }
 
@@ -269,6 +293,9 @@ export async function getPublicProjects() {
       include: {
         Technology: {
           orderBy: { name: "asc" },
+        },
+        ProjectMedia: {
+          orderBy: { order: "asc" },
         },
       },
     });
@@ -312,4 +339,23 @@ export async function getProjectBySlug(slug: string) {
   }
 
   return projects.find((project) => project.slug === slug) ?? null;
+}
+
+/**
+ * The long-form About narrative stored in `SiteSettings.aboutMarkdown` and
+ * authored with the admin Markdown editor. Returns an empty string when nothing
+ * has been saved yet, or when the database is unreachable (as in a DB-less CI
+ * build), so the About page simply keeps its built-in content.
+ */
+export async function getAboutMarkdown() {
+  try {
+    const settings = await prisma.siteSettings.findUnique({
+      where: { id: SITE_SETTINGS_ID },
+      select: { aboutMarkdown: true },
+    });
+
+    return settings?.aboutMarkdown?.trim() ?? "";
+  } catch {
+    return "";
+  }
 }

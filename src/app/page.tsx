@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { SectionHeading } from "@/components/section-heading";
@@ -9,6 +10,41 @@ import {
   siteSettings,
   technologies,
 } from "@/lib/portfolio-data";
+import type { ProjectMediaItem } from "@/lib/portfolio-data";
+
+/**
+ * Renders the project banner (first ordered media item) inside the card's
+ * visual frame, matching the detail page's media treatment. Embeds are not
+ * shown on the card; the decorative panel remains as a fallback.
+ */
+function ProjectCardBanner({ media }: { media: ProjectMediaItem }) {
+  if (media.type === "image" && media.url) {
+    return (
+      <Image
+        src={media.url}
+        alt=""
+        fill
+        sizes="(max-width: 980px) 100vw, 520px"
+        className="project-media-visual"
+      />
+    );
+  }
+
+  if (media.type === "video" && media.url) {
+    return (
+      <video
+        src={media.url}
+        muted
+        playsInline
+        preload="metadata"
+        aria-hidden="true"
+        className="project-media-visual"
+      />
+    );
+  }
+
+  return null;
+}
 
 export default async function HomePage() {
   const publicProjects = await getPublicProjects();
@@ -100,8 +136,15 @@ export default async function HomePage() {
                 key={project.slug}
                 className={`project-card project-card-${index + 1}`}
               >
-                <div className="project-visual" aria-hidden="true">
-                  <div className="visual-panel" />
+                <div
+                  className="project-visual"
+                  aria-hidden={project.media[0] ? undefined : "true"}
+                >
+                  {project.media[0] ? (
+                    <ProjectCardBanner media={project.media[0]} />
+                  ) : (
+                    <div className="visual-panel" />
+                  )}
                 </div>
 
                 <div className="project-content">
