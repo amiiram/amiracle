@@ -86,11 +86,55 @@ export const technologySchema = z.object({
 });
 
 /**
- * `ProjectMedia` stores absolute URL references only (object storage or external
- * hosts). No binary payload is ever persisted in PostgreSQL.
+ * `ProjectMedia` stores URL references only (either files committed under
+ * `public/` and addressed by their app-relative path, or external hosts).
+ * No binary payload is ever persisted in PostgreSQL.
  */
+/**
+ * Media URL must be either a valid external URL or a valid application-relative
+ * media path. Local filesystem paths (`C:\...`, `file://...`), protocol-relative
+ * URLs, path traversal, and extensionless blobs are all rejected so the stored
+ * value can always be rendered by the browser as-is.
+ */
+const mediaUrl = z
+  .string()
+  .trim()
+  .min(1, "Media URL is required")
+  .max(600)
+  .refine(
+    (value) => {
+      // External URLs must parse and use http(s).
+      if (/^https?:\/\//i.test(value)) {
+        try {
+          const parsed = new URL(value);
+
+          return parsed.protocol === "http:" || parsed.protocol === "https:";
+        } catch {
+          return false;
+        }
+      }
+
+      // Application-relative paths: single leading slash, no traversal,
+      // no backslashes, and a filename with an extension at the end.
+      if (value.startsWith("/") && !value.startsWith("//")) {
+        const segments = value.split("?")[0].split("#")[0].split("/");
+
+        if (segments.some((segment) => segment === ".." || segment === ".")) {
+          return false;
+        }
+
+        const filename = segments[segments.length - 1];
+
+        return filename.length > 0 && /\.[a-z0-9]{1,10}$/i.test(filename);
+      }
+
+      return false;
+    },
+    "Use a public path that starts with / (for example /media/projects/video-platform/banner.webp) or an https:// URL",
+  );
+
 export const projectMediaSchema = z.object({
-  url: z.string().url(),
+  url: mediaUrl,
   type: z.enum(ProjectMediaType).default(ProjectMediaType.image),
   alt: z.string().trim().max(200).optional(),
   caption: z.string().trim().max(300).optional(),
