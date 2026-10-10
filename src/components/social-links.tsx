@@ -1,14 +1,18 @@
-import { socialLinks } from "@/lib/portfolio-data";
+import type { SocialLink } from "@/lib/portfolio-data";
 
-export function SocialLinks() {
+export function SocialLinks({ links }: { links: SocialLink[] }) {
+  if (links.length === 0) {
+    return null;
+  }
+
   return (
     <ul className="social-list" aria-label="Social profiles">
-      {socialLinks.map((link) => (
-        <li key={link.label}>
+      {links.map((link) => (
+        <li key={link.id}>
           <a
             href={link.href}
-            target="_blank"
-            rel="noreferrer"
+            target={link.href.startsWith("mailto:") ? undefined : "_blank"}
+            rel={link.href.startsWith("mailto:") ? undefined : "noreferrer"}
             className="social-link"
           >
             {link.label}

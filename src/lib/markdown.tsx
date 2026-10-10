@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 /**
  * Minimal, dependency-free Markdown renderer for long-form project copy.
@@ -176,7 +176,29 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
   return nodes;
 }
 
-function renderParagraph(lines: string[], key: string): ReactNode {
+type MarkdownRenderOptions = {
+  headingOffset?: 0 | 1;
+  lineBreaks?: boolean;
+};
+
+function renderParagraph(
+  lines: string[],
+  key: string,
+  options: MarkdownRenderOptions,
+): ReactNode {
+  if (options.lineBreaks) {
+    return (
+      <p key={key}>
+        {lines.map((line, index) => (
+          <Fragment key={`${key}-${index}`}>
+            {index > 0 ? <br /> : null}
+            {renderInline(line.trim(), `${key}-${index}`)}
+          </Fragment>
+        ))}
+      </p>
+    );
+  }
+
   const merged = lines
     .map((line) => line.trim())
     .filter(Boolean)
@@ -189,7 +211,10 @@ function renderParagraph(lines: string[], key: string): ReactNode {
  * Renders a Markdown string into safe React elements. Usable from server and
  * client components; it performs no I/O and holds no state.
  */
-export function renderMarkdown(markdown: string): ReactNode {
+export function renderMarkdown(
+  markdown: string,
+  options: MarkdownRenderOptions = {},
+): ReactNode {
   const lines = markdown.replace(/\r\n?/g, "\n").split("\n");
   const blocks: ReactNode[] = [];
 
@@ -200,7 +225,7 @@ export function renderMarkdown(markdown: string): ReactNode {
 
   const flushParagraph = () => {
     if (paragraph.length > 0) {
-      blocks.push(renderParagraph(paragraph, `p-${blocks.length}`));
+      blocks.push(renderParagraph(paragraph, `p-${blocks.length}`, options));
       paragraph = [];
     }
   };
@@ -229,7 +254,7 @@ export function renderMarkdown(markdown: string): ReactNode {
     if (quoteLines.length > 0) {
       blocks.push(
         <blockquote key={`q-${blocks.length}`}>
-          {renderParagraph(quoteLines, `q-${blocks.length}`)}
+          {renderParagraph(quoteLines, `q-${blocks.length}`, options)}
         </blockquote>,
       );
       quoteLines = [];
@@ -275,7 +300,7 @@ export function renderMarkdown(markdown: string): ReactNode {
     if (heading) {
       flushAll();
 
-      const level = heading[1].length;
+      const level = heading[1].length + (options.headingOffset ?? 0);
       const content = renderInline(heading[2].trim(), `h-${blocks.length}`);
       const key = `h-${blocks.length}`;
 
@@ -285,8 +310,10 @@ export function renderMarkdown(markdown: string): ReactNode {
         blocks.push(<h2 key={key}>{content}</h2>);
       } else if (level === 3) {
         blocks.push(<h3 key={key}>{content}</h3>);
-      } else {
+      } else if (level === 4) {
         blocks.push(<h4 key={key}>{content}</h4>);
+      } else if (level === 5) {
+        blocks.push(<h5 key={key}>{content}</h5>);
       }
 
       continue;
@@ -339,4 +366,3 @@ export function renderMarkdown(markdown: string): ReactNode {
 
   return blocks;
 }
-

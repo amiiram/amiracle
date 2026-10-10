@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { getPublicSiteData } from "@/lib/portfolio-data";
+import { getPublicSiteUrl } from "@/lib/env";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,30 +14,40 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  weight: "400",
+  subsets: ["latin"],
+});
 
-export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
-  title: {
-    default: "Amiracle | Developer Portfolio",
-    template: "%s | Amiracle",
-  },
-  description:
-    "Amiracle is a frontend-first developer portfolio for building thoughtful product experiences, systems, and real-world web products.",
-  openGraph: {
-    title: "Amiracle | Developer Portfolio",
-    description:
-      "Frontend-focused developer building product experiences, systems, and polished web products.",
-    url: siteUrl,
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Amiracle | Developer Portfolio",
-    description:
-      "Frontend-focused developer building product experiences, systems, and polished web products.",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const [site, siteUrl] = await Promise.all([
+    getPublicSiteData(),
+    getPublicSiteUrl(),
+  ]);
+  const description =
+    site.description || "A portfolio of projects, experience, and skills.";
+
+  return {
+    metadataBase: siteUrl ? new URL(siteUrl) : undefined,
+    title: {
+      default: site.name,
+      template: `%s | ${site.name}`,
+    },
+    description,
+    openGraph: {
+      title: site.name,
+      description,
+      ...(siteUrl ? { url: siteUrl } : {}),
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title: site.name,
+      description,
+    },
+  };
+}
 
 export default function RootLayout({
   children,
@@ -45,7 +57,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body>{children}</body>

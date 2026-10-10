@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Amiracle
 
-## Getting Started
+Amiracle is a Next.js portfolio with a PostgreSQL database and a protected
+admin area for managing site settings, social links, technologies, projects,
+and experience.
 
-First, run the development server:
+## Requirements
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Node.js 20 or newer
+- PostgreSQL
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Local setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Install dependencies with `npm ci`.
+2. Copy `.env.example` to `.env` and configure the required values:
+   - `DATABASE_URL`: PostgreSQL connection string.
+   - `ADMIN_EMAIL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`: initial admin account;
+     use a unique password of at least 16 characters.
+   - `ADMIN_SESSION_SECRET`: a cryptographically random secret of at least 32
+     characters. `NEXTAUTH_SECRET` is accepted as a fallback.
+   - `NEXT_PUBLIC_SITE_URL`: optional canonical site URL. Use HTTPS for a
+     production host; localhost is allowed for local development/builds.
+3. Generate the Prisma client with `npm run db:generate`.
+4. Apply the committed migrations and create the initial admin with
+   `npm run db:setup`.
+5. Start the site with `npm run dev`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The seed command creates an admin account only when its email is not already
+present. It does not update existing user credentials or modify portfolio
+content. Configure seed values before running it. Never use example credentials
+for a public deployment.
 
-## Learn More
+## Production
 
-To learn more about Next.js, take a look at the following resources:
+Configure `DATABASE_URL`, `ADMIN_EMAIL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`,
+`ADMIN_SESSION_SECRET`, and `NEXT_PUBLIC_SITE_URL` in the hosting provider.
+Apply forward migrations with `npm run db:migrate`; run `npm run db:seed` once
+after setting the initial admin credentials. The seed is repeatable and does
+not reset the database.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Run `npm run build` to create a production build and `npm run start` to serve
+it. Do not use `npm run db:push` for production; use the checked-in migration
+history.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Content management
 
-## Deploy on Vercel
+Use `/admin` to manage projects, experience, technologies, site settings, and
+visible social links (including adding the first link). Only published
+projects with `PUBLIC` visibility appear on the public pages. Experience
+records are managed at `/admin/experience`, listed at `/experience`, and have
+individual `/experience/<slug>` pages. Experience records have no publication
+or visibility flag, so every saved experience is public. Their descriptions
+are Markdown rendered as escaped React elements; raw HTML is not executed.
+Technologies reuse the existing Technology records. Related project previews
+and links include only projects with `published` status and `PUBLIC` visibility;
+unlisted, private, draft, and archived projects remain hidden. Education is
+read from its Prisma model but has no admin editor. No sample profile,
+experience, project claims, or external profile links are preloaded by the
+application.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The experience-details migration adds a unique slug and backfills existing
+records from their role and company with a stable ID suffix. It also adds
+optional many-to-many links to existing projects and technologies without
+changing or deleting those records.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Project media must be committed below `public/media/` and referenced by its
+application-relative URL (for example `/media/projects/example/cover.webp`).
+Do not select sample/placeholder files as portfolio work.
+
+## Validation
+
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npx prisma validate`
+- `npm test`
+- `npm run build`

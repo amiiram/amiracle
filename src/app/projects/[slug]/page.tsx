@@ -1,13 +1,53 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { SectionHeading } from "@/components/section-heading";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { SocialLinks } from "@/components/social-links";
-import { getProjectBySlug, siteSettings } from "@/lib/portfolio-data";
+import { getPublicSiteUrl } from "@/lib/env";
+import { getProjectBySlug } from "@/lib/portfolio-data";
 import { renderMarkdown } from "@/lib/markdown";
 import type { ProjectMediaItem } from "@/lib/portfolio-data";
+
+type ProjectPageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+export async function generateMetadata({
+  params,
+}: ProjectPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const project = await getProjectBySlug(slug);
+
+  if (!project) {
+    return {};
+  }
+
+  const description = project.excerpt || `${project.title} project case study.`;
+  const siteUrl = getPublicSiteUrl();
+  const canonical = siteUrl
+    ? new URL(`/projects/${encodeURIComponent(slug)}`, siteUrl).toString()
+    : undefined;
+
+  return {
+    title: project.title,
+    description,
+    ...(canonical ? { alternates: { canonical } } : {}),
+    openGraph: {
+      title: project.title,
+      description,
+      type: "article",
+      ...(canonical ? { url: canonical } : {}),
+    },
+    twitter: {
+      card: "summary",
+      title: project.title,
+      description,
+    },
+  };
+}
 
 /**
  * Renders one media item in the visual language of the project page. The
@@ -65,9 +105,7 @@ function ProjectMediaContent({
 
 export default async function ProjectDetailPage({
   params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+}: ProjectPageProps) {
   const { slug } = await params;
   const project = await getProjectBySlug(slug);
 
@@ -80,9 +118,12 @@ export default async function ProjectDetailPage({
 
   return (
     <>
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
       <SiteHeader />
 
-      <main className="page-shell narrow-page">
+      <main id="main-content" className="page-shell narrow-page">
         <section className="content-section project-detail-hero">
           <div className="project-detail-header">
             <div className="eyebrow">
@@ -92,16 +133,11 @@ export default async function ProjectDetailPage({
             <h1>{project.title}</h1>
           </div>
 
-          <div
-            className="project-feature-visual"
-            aria-hidden={banner ? undefined : true}
-          >
-            {banner ? (
+          {banner ? (
+            <div className="project-feature-visual">
               <ProjectMediaContent media={banner} preload />
-            ) : (
-              <div className="feature-visual-panel" />
-            )}
-          </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="content-section project-detail-layout">
@@ -114,25 +150,32 @@ export default async function ProjectDetailPage({
             ) : null}
           </div>
 
-          <aside className="project-aside">
-            <div className="aside-block">
-              <h3>Stack</h3>
-              <ul>
-                {project.technologies.map((tech) => (
-                  <li key={tech}>{tech}</li>
-                ))}
-              </ul>
-            </div>
+          {project.technologies.length > 0 ||
+          project.responsibilities.length > 0 ? (
+            <aside className="project-aside">
+              {project.technologies.length > 0 ? (
+                <div className="aside-block">
+                  <h2>Stack</h2>
+                  <ul>
+                    {project.technologies.map((tech) => (
+                      <li key={tech}>{tech}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
-            <div className="aside-block">
-              <h3>Responsibilities</h3>
-              <ul>
-                {project.responsibilities.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-          </aside>
+              {project.responsibilities.length > 0 ? (
+                <div className="aside-block">
+                  <h2>Responsibilities</h2>
+                  <ul>
+                    {project.responsibilities.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+            </aside>
+          ) : null}
         </section>
 
         {galleryMedia.length > 0 ? (
@@ -159,26 +202,6 @@ export default async function ProjectDetailPage({
           </section>
         ) : null}
 
-        <section className="content-section">
-          <SectionHeading
-            label="Project notes"
-            title="What this work was trying to solve"
-          />
-          <div className="project-notes">
-            <p>
-              The project focus was not simply “build a UI,” but create a
-              dependable experience where timing, reliability, and product
-              clarity mattered more than cleverness alone.
-            </p>
-            <p>
-              In practice, that meant balancing technical constraints with
-              usability: better playback behavior, stronger states, cleaner
-              operational feedback, and a system that could be reasoned about
-              under real pressure.
-            </p>
-          </div>
-        </section>
-
         <section className="content-section project-footer-nav">
           <Link href="/#work" className="secondary-button">
             Back to work
@@ -186,12 +209,7 @@ export default async function ProjectDetailPage({
         </section>
       </main>
 
-      <footer className="site-footer">
-        <div className="footer-inner">
-          <div className="footer-brand">{siteSettings.name}</div>
-          <SocialLinks />
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }

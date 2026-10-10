@@ -1,65 +1,85 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import { SectionHeading } from "@/components/section-heading";
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { SocialLinks } from "@/components/social-links";
-import { siteSettings } from "@/lib/portfolio-data";
+import { getPublicSiteUrl } from "@/lib/env";
+import { getPublicSiteData } from "@/lib/portfolio-data";
 
-export default function ContactPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const siteUrl = getPublicSiteUrl();
+  const canonical = siteUrl
+    ? new URL("/contact", siteUrl).toString()
+    : undefined;
+
+  return {
+    title: "Contact",
+    description: "Contact information for the Amiracle portfolio.",
+    ...(canonical
+      ? {
+          alternates: { canonical },
+          openGraph: { url: canonical },
+        }
+      : {}),
+  };
+}
+
+export default async function ContactPage() {
+  const site = await getPublicSiteData();
+
   return (
     <>
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
       <SiteHeader />
 
-      <main className="page-shell narrow-page">
+      <main id="main-content" className="page-shell narrow-page">
         <section className="content-section">
           <SectionHeading
             label="Contact"
-            title="Let’s build something useful."
+            title="Contact information"
+            level={1}
           />
         </section>
 
         <section className="content-section contact-hero">
           <div>
-            <p>
-              I’m open to frontend, full-stack, and product-focused
-              opportunities where strong engineering and thoughtful design
-              matter.
-            </p>
-            <div className="contact-actions stack-actions">
-              <a href="mailto:hello@amiracle.dev" className="primary-button">
-                hello@amiracle.dev
-              </a>
-              <Link href="/about" className="secondary-button">
-                Back to about
-              </Link>
-            </div>
+            {site.email ? (
+              <>
+                <p>For inquiries, reach me by email.</p>
+                <div className="contact-actions stack-actions">
+                  <a
+                    href={`mailto:${site.email}`}
+                    className="primary-button"
+                  >
+                    {site.email}
+                  </a>
+                </div>
+              </>
+            ) : (
+              <p>Contact information has not been added yet.</p>
+            )}
           </div>
 
-          <div className="about-panel">
-            <h3>Current focus</h3>
-            <ul>
-              <li>Frontend architecture and product interfaces</li>
-              <li>Full-stack product implementation</li>
-              <li>Systems that scale without sacrificing clarity</li>
-            </ul>
-          </div>
+          {site.socialLinks.length > 0 ? (
+            <div className="about-panel">
+              <h2>Elsewhere</h2>
+              <SocialLinks links={site.socialLinks} />
+            </div>
+          ) : null}
         </section>
 
-        <section className="content-section social-section">
-          <div className="eyebrow">
-            <span className="eyebrow-slash">{`//`}</span>
-            <span>Elsewhere</span>
-          </div>
-          <SocialLinks />
+        <section className="content-section">
+          <Link href="/" className="secondary-button">
+            Back to home
+          </Link>
         </section>
       </main>
 
-      <footer className="site-footer">
-        <div className="footer-inner">
-          <div className="footer-brand">{siteSettings.name}</div>
-          <SocialLinks />
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }
