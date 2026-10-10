@@ -3,6 +3,10 @@ import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import {
+  hashPassword as hashPasswordSync,
+  verifyPassword as verifyPasswordSync,
+} from "@/lib/auth/password.mjs";
 import { prisma } from "@/lib/db/prisma";
 
 export const adminSessionCookie = "amiracle_admin_session";
@@ -16,6 +20,15 @@ function getSessionSecret() {
     throw new Error(
       "Missing ADMIN_SESSION_SECRET or NEXTAUTH_SECRET. Set a strong secret before enabling admin sessions.",
     );
+  }
+
+  if (secret.length < 32) {
+    throw new Error(
+      "ADMIN_SESSION_SECRET or NEXTAUTH_SECRET must be at least 32 characters.",
+    );
+  }
+  if (secret === "replace-with-a-long-random-secret") {
+    throw new Error("Configure a unique admin session secret before login.");
   }
 
   return secret;
@@ -48,12 +61,12 @@ export function verifySessionToken(token?: string | null) {
 
   const [payloadSegment, signature] = segments;
   const expectedSignature = signTokenSegment(payloadSegment);
+  const signatureBytes = Buffer.from(signature);
+  const expectedBytes = Buffer.from(expectedSignature);
 
   if (
-    !crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature),
-    )
+    signatureBytes.length !== expectedBytes.length ||
+    !crypto.timingSafeEqual(signatureBytes, expectedBytes)
   ) {
     return null;
   }
@@ -78,63 +91,12 @@ export function verifySessionToken(token?: string | null) {
   }
 }
 
-export async function ensureInitialAdminUser() {
-  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const password = process.env.ADMIN_PASSWORD;
-
-  if (!email || !password) {
-    return null;
-  }
-
-  const username = process.env.ADMIN_USERNAME?.trim() || email.split("@")[0];
-
-  const existing = await prisma.adminUser.findUnique({
-    where: { email },
-  });
-
-  if (existing) {
-    return existing;
-  }
-
-  const passwordHash = await hashPassword(password);
-
-  return prisma.adminUser.create({
-    data: {
-      email,
-      username,
-      name: "Owner",
-      passwordHash,
-      isActive: true,
-    },
-  });
-}
-
 export async function hashPassword(password: string) {
-  const salt = crypto.randomBytes(16);
-  const derivedKey = crypto.pbkdf2Sync(password, salt, 120000, 64, "sha256");
-
-  return `pbkdf2_sha256$${120000}$${salt.toString("hex")}$${derivedKey.toString("hex")}`;
+  return hashPasswordSync(password);
 }
 
 export async function verifyPassword(password: string, hash: string) {
-  const parts = hash.split("$");
-
-  if (parts.length !== 4 || parts[0] !== "pbkdf2_sha256") {
-    return false;
-  }
-
-  const iterations = Number(parts[1]);
-  const salt = Buffer.from(parts[2], "hex");
-  const expected = Buffer.from(parts[3], "hex");
-  const actual = crypto.pbkdf2Sync(
-    password,
-    salt,
-    iterations,
-    expected.length,
-    "sha256",
-  );
-
-  return crypto.timingSafeEqual(actual, expected);
+  return verifyPasswordSync(password, hash);
 }
 
 export async function issueAdminSession(userId: string) {
