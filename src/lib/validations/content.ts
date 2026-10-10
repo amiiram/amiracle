@@ -51,6 +51,11 @@ const slugString = z
   )
   .refine((value) => value.length > 0, "Slug must contain a letter or number");
 
+const relationIds = z
+  .array(z.string().trim().min(1).max(128))
+  .max(100, "Select no more than 100 related items")
+  .transform((ids) => [...new Set(ids)]);
+
 export const projectSchema = z
   .object({
     slug: slugString,
@@ -143,13 +148,17 @@ export const projectMediaSchema = z.object({
 
 export const experienceSchema = z
   .object({
+    slug: slugString,
     company: z.string().trim().min(1).max(160),
     role: z.string().trim().min(1).max(160),
     location: z.string().trim().max(120).optional(),
-    description: z.string().trim().max(2000).optional(),
+    summary: z.string().trim().max(280).optional(),
+    description: z.string().trim().max(4000).optional(),
     startDate: dateOnlyString.transform(toUtcDateOnly),
     endDate: optionalDateOnly,
     isCurrent: z.boolean().default(false),
+    projectIds: relationIds.default([]),
+    technologyIds: relationIds.default([]),
   })
   .superRefine((experience, ctx) => {
     // A current role must not carry an end date.

@@ -43,16 +43,20 @@ model Education {
 }
 
 model Experience {
-  id          String    @id
+  id          String       @id
+  slug        String       @unique
   company     String
   role        String
   location    String?
-  startDate   DateTime  @db.Date
-  endDate     DateTime? @db.Date
-  isCurrent   Boolean   @default(false)
+  summary     String?
+  startDate   DateTime     @db.Date
+  endDate     DateTime?    @db.Date
+  isCurrent   Boolean      @default(false)
   description String?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime     @default(now())
   updatedAt   DateTime
+  Project     Project[]
+  Technology  Technology[]
 }
 
 model Project {
@@ -68,6 +72,7 @@ model Project {
   publishedAt      DateTime?
   createdAt        DateTime          @default(now())
   updatedAt        DateTime
+  Experience       Experience[]
   ProjectMedia     ProjectMedia[]
   Technology       Technology[]
 
@@ -112,13 +117,14 @@ model SocialLink {
 }
 
 model Technology {
-  id        String    @id
-  name      String    @unique
-  slug      String    @unique
-  order     Int       @default(0)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime
-  Project   Project[]
+  id         String       @id
+  name       String       @unique
+  slug       String       @unique
+  order      Int          @default(0)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime
+  Experience Experience[]
+  Project    Project[]
 }
 
 enum Locale {
