@@ -1,9 +1,11 @@
 import { Locale, ThemeMode } from "@prisma/client";
 
 import {
+  createSocialLinkAction,
   updateSiteSettingsAction,
   updateSocialLinkAction,
 } from "@/app/admin/settings/actions";
+import { CreateSocialLinkForm } from "@/components/admin/create-social-link-form";
 import { SiteSettingsForm } from "@/components/admin/site-settings-form";
 import { SocialLinkForm } from "@/components/admin/social-link-form";
 import { requireAdminSession } from "@/lib/auth";
@@ -109,6 +111,8 @@ export default async function AdminSettingsPage({
         </p>
 
         <div className="mt-6 space-y-4">
+          <CreateSocialLinkForm action={createSocialLinkAction} />
+
           {socialLinks.map((link) => (
             <SocialLinkForm
               key={link.id}

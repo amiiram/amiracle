@@ -75,6 +75,9 @@ export type MarkdownEditorProps = {
   projectSlug?: string;
   /** Existing `ProjectMedia` rows, used only to suggest alt text. */
   projectMedia?: ReadonlyArray<MarkdownMediaHint>;
+  showMediaPicker?: boolean;
+  lineBreaks?: boolean;
+  headingOffset?: 0 | 1;
   invalid?: boolean;
   describedBy?: string;
   labelledBy?: string;
@@ -417,6 +420,9 @@ export function MarkdownEditor({
   placeholder,
   projectSlug,
   projectMedia,
+  showMediaPicker = true,
+  lineBreaks,
+  headingOffset,
   invalid,
   describedBy,
   labelledBy,
@@ -467,14 +473,15 @@ export function MarkdownEditor({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <button
-          type="button"
-          className={insertMediaButtonClassName}
-          onClick={() => setPickerOpen(true)}
-        >
-          Insert Media
-        </button>
-
+        {showMediaPicker ? (
+          <button
+            type="button"
+            className={insertMediaButtonClassName}
+            onClick={() => setPickerOpen(true)}
+          >
+            Insert Media
+          </button>
+        ) : null}
         <div className="flex items-center gap-1.5">
           <button
             type="button"
@@ -524,7 +531,7 @@ export function MarkdownEditor({
         {mode === "preview" ? (
           <div className={previewPanelClassName} aria-live="polite">
             {markdown.trim() ? (
-              renderMarkdown(markdown)
+              renderMarkdown(markdown, { lineBreaks, headingOffset })
             ) : (
               <p className="text-sm text-slate-500">Nothing to preview yet.</p>
             )}
@@ -564,6 +571,9 @@ export function MarkdownField({
   placeholder,
   projectSlug,
   projectMedia,
+  showMediaPicker = true,
+  lineBreaks,
+  headingOffset,
   fieldErrors,
 }: {
   id: string;
@@ -573,6 +583,9 @@ export function MarkdownField({
   placeholder?: string;
   projectSlug?: string;
   projectMedia?: ReadonlyArray<MarkdownMediaHint>;
+  showMediaPicker?: boolean;
+  lineBreaks?: boolean;
+  headingOffset?: 0 | 1;
   fieldErrors?: Record<string, string[]>;
 }) {
   const messages = fieldErrors?.[name] ?? [];
@@ -598,18 +611,23 @@ export function MarkdownField({
         placeholder={placeholder}
         projectSlug={projectSlug}
         projectMedia={projectMedia}
+        showMediaPicker={showMediaPicker}
+        lineBreaks={lineBreaks}
+        headingOffset={headingOffset}
       />
 
       <FieldErrors id={errorId} messages={messages} />
 
       <p className="text-xs text-slate-500">
-        Stored as Markdown and rendered by the site&apos;s own renderer. Videos
-        use image syntax with a video file:{" "}
-        <code>{`![Demo](/media/projects/<slug>/demo.mp4)`}</code>
+        Stored as Markdown and rendered by the site&apos;s own renderer.
+        {showMediaPicker ? (
+          <>
+            {" "}Videos use image syntax with a video file:{" "}
+            <code>{`![Demo](/media/projects/<slug>/demo.mp4)`}</code>
+          </>
+        ) : null}
       </p>
     </div>
   );
 }
-
-
 

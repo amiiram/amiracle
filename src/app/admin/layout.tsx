@@ -33,6 +33,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 Projects
               </Link>
               <Link
+                href="/admin/experience"
+                className="rounded-full border border-slate-700 px-3 py-1.5 transition hover:border-slate-500 hover:text-white"
+              >
+                Experience
+              </Link>
+              <Link
                 href="/admin/technologies"
                 className="rounded-full border border-slate-700 px-3 py-1.5 transition hover:border-slate-500 hover:text-white"
               >

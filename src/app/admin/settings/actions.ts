@@ -1,6 +1,7 @@
 "use server";
 
 import { Locale, ThemeMode, Prisma } from "@prisma/client";
+import crypto from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -27,6 +28,7 @@ import {
  */
 const ADMIN_SETTINGS_PATH = "/admin/settings";
 const PUBLIC_ABOUT_PATH = "/about";
+const PUBLIC_PATHS = ["/", "/about", "/contact"];
 const SAVE_FAILURE_MESSAGE = "Unable to save the settings. Please try again.";
 const LINK_SAVE_FAILURE_MESSAGE =
   "Unable to save this social link. Please try again.";
@@ -53,6 +55,15 @@ export type SocialLinkFormValues = {
 };
 
 export type SocialLinkFormState = FormState<SocialLinkFormValues>;
+
+export type NewSocialLinkFormValues = {
+  platform: string;
+  url: string;
+  label: string;
+  isVisible: boolean;
+};
+
+export type NewSocialLinkFormState = FormState<NewSocialLinkFormValues>;
 
 function readSiteSettingsValues(formData: FormData): SiteSettingsFormValues {
   return {
@@ -114,7 +125,9 @@ export async function updateSiteSettingsAction(
   }
 
   revalidatePath(ADMIN_SETTINGS_PATH);
-  revalidatePath(PUBLIC_ABOUT_PATH);
+  for (const path of [...PUBLIC_PATHS, PUBLIC_ABOUT_PATH]) {
+    revalidatePath(path);
+  }
   redirect(`${ADMIN_SETTINGS_PATH}?status=saved`);
 }
 
@@ -180,5 +193,63 @@ export async function updateSocialLinkAction(
   }
 
   revalidatePath(ADMIN_SETTINGS_PATH);
+  for (const path of PUBLIC_PATHS) {
+    revalidatePath(path);
+  }
+  redirect(`${ADMIN_SETTINGS_PATH}?status=link-saved`);
+}
+
+export async function createSocialLinkAction(
+  _state: NewSocialLinkFormState,
+  formData: FormData,
+): Promise<NewSocialLinkFormState> {
+  await requireAdminSession();
+
+  const values: NewSocialLinkFormValues = {
+    platform: readFieldText(formData, "platform"),
+    url: readFieldText(formData, "url"),
+    label: readFieldText(formData, "label"),
+    isVisible: formData.get("isVisible") === "on",
+  };
+  const parsed = socialLinkSchema.safeParse({
+    ...values,
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      message: FORM_VALIDATION_MESSAGE,
+      fieldErrors: toFieldErrors(parsed.error),
+      values,
+    };
+  }
+
+  try {
+    await prisma.socialLink.create({
+      data: {
+        id: crypto.randomUUID(),
+        ...parsed.data,
+        updatedAt: new Date(),
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return {
+        success: false,
+        message: "A social link with that platform already exists.",
+        values,
+      };
+    }
+
+    return { success: false, message: LINK_SAVE_FAILURE_MESSAGE, values };
+  }
+
+  revalidatePath(ADMIN_SETTINGS_PATH);
+  for (const path of PUBLIC_PATHS) {
+    revalidatePath(path);
+  }
   redirect(`${ADMIN_SETTINGS_PATH}?status=link-saved`);
 }

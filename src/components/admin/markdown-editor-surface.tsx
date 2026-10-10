@@ -98,6 +98,46 @@ export function MarkdownEditorSurface({
     const container = containerRef.current;
     if (!container) return;
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+
+      const target =
+        event.target instanceof HTMLElement
+          ? event.target.closest<HTMLElement>('[contenteditable="true"]')
+          : null;
+      if (!target || !container.contains(target)) return;
+
+      const focusableElements = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          [
+            'a[href]',
+            'button:not([disabled])',
+            'input:not([disabled]):not([type="hidden"])',
+            'select:not([disabled])',
+            'textarea:not([disabled])',
+            '[contenteditable="true"]',
+            '[tabindex]:not([tabindex="-1"])',
+          ].join(", "),
+        ),
+      ).filter(
+        (element) =>
+          element === target ||
+          (element.tabIndex >= 0 &&
+            element.getClientRects().length > 0 &&
+            getComputedStyle(element).visibility !== "hidden"),
+      );
+      const currentIndex = focusableElements.indexOf(target);
+      const nextElement =
+        focusableElements[currentIndex + (event.shiftKey ? -1 : 1)];
+
+      if (currentIndex < 0 || !nextElement) return;
+
+      // The editor consumes Tab; restore the page's normal focus traversal.
+      event.preventDefault();
+      event.stopPropagation();
+      nextElement.focus();
+    };
+
     const handlePaste = async (event: ClipboardEvent) => {
       const text = event.clipboardData?.getData("text/plain");
       if (!text) return;
@@ -109,8 +149,9 @@ export function MarkdownEditorSurface({
         !/<[a-z][\s>]/i.test(text); // Not HTML
 
       if (looksLikeMarkdown) {
-        // Prevent default paste
+        // Prevent the editor's native handler from processing the same paste.
         event.preventDefault();
+        event.stopPropagation();
 
         // Try to parse and insert as markdown
         try {
@@ -123,10 +164,12 @@ export function MarkdownEditorSurface({
       }
     };
 
-    container.addEventListener("paste", handlePaste);
+    container.addEventListener("keydown", handleKeyDown, true);
+    container.addEventListener("paste", handlePaste, true);
 
     return () => {
-      container.removeEventListener("paste", handlePaste);
+      container.removeEventListener("keydown", handleKeyDown, true);
+      container.removeEventListener("paste", handlePaste, true);
     };
   }, []);
 

@@ -1,5 +1,3 @@
-import { redirect } from "next/navigation";
-
 import { createProjectAction } from "@/app/admin/projects/actions";
 import { ProjectForm } from "@/components/admin/project-form";
 import { requireAdminSession } from "@/lib/auth";

@@ -21,6 +21,7 @@ const ADMIN_PROJECTS_PATH = "/admin/projects";
 // The public home page is prerendered from the database, so technology renames
 // have to invalidate it as well.
 const HOME_PATH = "/";
+const ABOUT_PATH = "/about";
 
 const SAVE_FAILURE_MESSAGE = "Unable to save the technology. Please try again.";
 const DELETE_FAILURE_MESSAGE =
@@ -139,6 +140,7 @@ function revalidateTechnologyPaths() {
   revalidatePath(ADMIN_TECHNOLOGIES_PATH);
   revalidatePath(ADMIN_PROJECTS_PATH);
   revalidatePath(HOME_PATH);
+  revalidatePath(ABOUT_PATH);
 }
 
 /** True when another technology already owns the given name or slug. */

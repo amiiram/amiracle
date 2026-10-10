@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState } from "react";
-import { redirect } from "next/navigation";
 
 import { loginAction } from "./actions";
 
