@@ -91,7 +91,7 @@ export default async function ExperienceDetailPage({
               {experience.company}
               {experience.location ? ` · ${experience.location}` : ""}
             </p>
-            <p className="mt-3 text-sm text-neutral-400">
+            <p className="mt-3 text-sm text-[var(--accent)]">
               {experience.startDate}
               {experience.isCurrent
                 ? " – Present"
@@ -100,12 +100,12 @@ export default async function ExperienceDetailPage({
                   : ""}
             </p>
             {experience.isCurrent ? (
-              <p className="mt-3 inline-flex rounded-full border border-lime-300/40 px-3 py-1 text-xs text-lime-200">
+              <p className="mt-3 inline-flex rounded-none border border-[var(--accent)]/40 px-3 py-1 text-xs text-[var(--accent)]">
                 Current role
               </p>
             ) : null}
             {experience.summary ? (
-              <p className="mt-6 text-lg leading-8 text-zinc-200">
+              <p className="mt-6 text-lg leading-8 text-[var(--am-text)]">
                 {experience.summary}
               </p>
             ) : null}
@@ -145,21 +145,21 @@ export default async function ExperienceDetailPage({
                 {experience.projects.map((project) => (
                   <article
                     key={project.slug}
-                    className="rounded-2xl border border-neutral-800 bg-neutral-950/40 p-5"
+                    className="experience-project-card p-5"
                   >
                     {project.year ? (
-                      <p className="text-xs text-neutral-500">{project.year}</p>
+                      <p className="text-xs text-[var(--accent)]">{project.year}</p>
                     ) : null}
-                    <h3 className="mt-2 text-lg font-medium text-zinc-100">
+                    <h3 className="mt-2 text-lg font-medium text-[var(--am-text)]">
                       <Link
                         href={`/projects/${encodeURIComponent(project.slug)}`}
-                        className="underline decoration-neutral-700 underline-offset-4 transition hover:decoration-lime-300"
+                        className="underline decoration-[var(--am-border)] underline-offset-4 transition hover:text-[var(--am-link)] hover:decoration-[var(--am-link)]"
                       >
                         {project.title}
                       </Link>
                     </h3>
                     {project.excerpt ? (
-                      <p className="mt-2 text-sm leading-6 text-neutral-400">
+                      <p className="mt-2 text-sm leading-6 text-[var(--am-text-muted)]">
                         {project.excerpt}
                       </p>
                     ) : null}

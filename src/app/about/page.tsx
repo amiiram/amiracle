@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { SectionHeading } from "@/components/section-heading";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { SocialLinks } from "@/components/social-links";
 import { renderMarkdown } from "@/lib/markdown";
 import { getPublicSiteUrl } from "@/lib/env";
 import {
@@ -66,10 +65,9 @@ export default async function AboutPage() {
               <SectionHeading label="Experience" title="Experience" />
               <Link
                 href="/experience"
-                className="inline-flex w-fit items-center gap-2 text-sm font-medium text-zinc-200 underline decoration-neutral-600 underline-offset-4 transition hover:text-white hover:decoration-lime-300"
+                className="inline-link experience-more-link"
               >
                 View all experience
-                <span aria-hidden="true">→</span>
               </Link>
             </div>
             <div className="timeline">
@@ -94,7 +92,7 @@ export default async function AboutPage() {
                     ) : null}
                     <Link
                       href={`/experience/${encodeURIComponent(experience.slug)}`}
-                      className="mt-3 inline-flex text-sm text-zinc-200 underline decoration-neutral-600 underline-offset-4 transition hover:text-white hover:decoration-lime-300"
+                      className="mt-3 inline-flex text-sm text-[var(--am-text)] underline decoration-[var(--am-border)] underline-offset-4 transition hover:text-[var(--am-link)] hover:decoration-[var(--am-link)]"
                     >
                       Role details
                     </Link>
@@ -129,7 +127,7 @@ export default async function AboutPage() {
           </section>
         ) : null}
 
-        <section className="content-section">
+        <section className="content-section skills-section">
           <SectionHeading label="Skills" title="Skills and technologies" />
           {technologies.length > 0 ? (
             <div className="stack-grid">
@@ -144,20 +142,33 @@ export default async function AboutPage() {
           )}
         </section>
 
-        <section className="content-section contact-panel">
-          <div>
-            <div className="eyebrow">
-              <span className="eyebrow-slash">{`//`}</span>
-              <span>Contact</span>
+        <section className="content-section">
+          <div className="contact-panel">
+            <div className="contact-panel-copy">
+              <div className="eyebrow">
+                <span className="eyebrow-slash">{`//`}</span>
+                <span>Contact</span>
+              </div>
+              <h2>Let&apos;s start a conversation.</h2>
+              <p>
+                For opportunities, project inquiries, or questions, get in
+                touch.
+              </p>
             </div>
-            <h2>Contact information</h2>
-          </div>
 
-          <div className="contact-actions">
-            <Link href="/contact" className="primary-button">
-              Contact
-            </Link>
-            <SocialLinks links={site.socialLinks} />
+            <div className="contact-panel-actions">
+              {site.email ? (
+                <a href={`mailto:${site.email}`} className="primary-button">
+                  Send an email
+                </a>
+              ) : null}
+              <Link
+                href="/contact"
+                className={site.email ? "secondary-button" : "primary-button"}
+              >
+                More ways to connect
+              </Link>
+            </div>
           </div>
         </section>
       </main>

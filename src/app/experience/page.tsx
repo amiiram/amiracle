@@ -63,7 +63,7 @@ export default async function ExperiencePage() {
                     <div className="flex flex-wrap items-center gap-3">
                       <h2>{experience.role}</h2>
                       {experience.isCurrent ? (
-                        <span className="rounded-full border border-lime-300/40 px-2 py-0.5 text-xs text-lime-200">
+                        <span className="rounded-none border border-[var(--accent)]/40 px-2 py-0.5 text-xs text-[var(--accent)]">
                           Current
                         </span>
                       ) : null}
@@ -94,7 +94,7 @@ export default async function ExperiencePage() {
 
                     {experience.projects.length > 0 ? (
                       <div className="mt-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-neutral-500">
+                        <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent)]">
                           Related projects
                         </p>
                         <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
@@ -102,7 +102,7 @@ export default async function ExperiencePage() {
                             <li key={project.slug}>
                               <Link
                                 href={`/projects/${encodeURIComponent(project.slug)}`}
-                                className="text-sm text-zinc-200 underline decoration-neutral-600 underline-offset-4 transition hover:decoration-lime-300"
+                                className="text-sm text-[var(--am-text)] underline decoration-[var(--am-border)] underline-offset-4 transition hover:text-[var(--am-link)] hover:decoration-[var(--am-link)]"
                               >
                                 {project.title}
                               </Link>
@@ -114,7 +114,7 @@ export default async function ExperiencePage() {
 
                     <Link
                       href={`/experience/${encodeURIComponent(experience.slug)}`}
-                      className="mt-4 inline-flex text-sm text-lime-200 underline decoration-lime-200/40 underline-offset-4 transition hover:decoration-lime-200"
+                      className="mt-4 inline-flex text-sm text-[var(--accent)] underline decoration-[var(--accent)]/40 underline-offset-4 transition hover:decoration-[var(--accent)]"
                     >
                       Read role details
                     </Link>

@@ -28,6 +28,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ContactPage() {
   const site = await getPublicSiteData();
+  const socialLinks = site.socialLinks.filter(
+    (link) => !site.email || !link.href.toLowerCase().startsWith("mailto:"),
+  );
 
   return (
     <>
@@ -37,43 +40,58 @@ export default async function ContactPage() {
       <SiteHeader />
 
       <main id="main-content" className="page-shell narrow-page">
-        <section className="content-section">
-          <SectionHeading
-            label="Contact"
-            title="Contact information"
-            level={1}
-          />
-        </section>
-
-        <section className="content-section contact-hero">
-          <div>
-            {site.email ? (
-              <>
-                <p>For inquiries, reach me by email.</p>
-                <div className="contact-actions stack-actions">
-                  <a
-                    href={`mailto:${site.email}`}
-                    className="primary-button"
-                  >
-                    {site.email}
-                  </a>
-                </div>
-              </>
-            ) : (
-              <p>Contact information has not been added yet.</p>
-            )}
-          </div>
-
-          {site.socialLinks.length > 0 ? (
-            <div className="about-panel">
-              <h2>Elsewhere</h2>
-              <SocialLinks links={site.socialLinks} />
+        <section className="content-section contact-page-section">
+          <SectionHeading label="Contact" title="Let’s get in touch" level={1} />
+          <div className="contact-page-hero">
+            <div
+              className={`contact-page-copy${
+                socialLinks.length === 0 ? " contact-page-copy-full" : ""
+              }`}
+            >
+              <div className="eyebrow">
+                <span className="eyebrow-slash">{`//`}</span>
+                <span>Start a conversation</span>
+              </div>
+              <h2>Have an opportunity, a project, or a question?</h2>
+              <p>
+                {site.email && socialLinks.length > 0
+                  ? "Send me an email or connect through one of the profiles. I’d be glad to hear from you."
+                  : site.email
+                    ? "Send me an email. I’d be glad to hear from you."
+                    : socialLinks.length > 0
+                      ? "Connect with me through one of the profiles below."
+                      : "Contact details have not been added yet."}
+              </p>
+              {site.email ? (
+                <a
+                  href={`mailto:${site.email}`}
+                  className="contact-email-link"
+                >
+                  <span className="contact-option-label">Email</span>
+                  <span className="contact-email-address">{site.email}</span>
+                  <span className="contact-email-arrow" aria-hidden="true">
+                    ↗
+                  </span>
+                </a>
+              ) : null}
             </div>
-          ) : null}
+
+            {socialLinks.length > 0 ? (
+              <aside className="contact-social-panel">
+                <h2>Find me elsewhere</h2>
+                <p>Connect with me on these profiles.</p>
+                <SocialLinks
+                  links={socialLinks}
+                  className="social-list contact-social-list"
+                />
+              </aside>
+            ) : null}
+          </div>
         </section>
 
-        <section className="content-section">
-          <Link href="/" className="secondary-button">
+        <section className="contact-page-footer">
+          <p>Thanks for stopping by.</p>
+          <Link href="/" className="inline-link">
             Back to home
           </Link>
         </section>
