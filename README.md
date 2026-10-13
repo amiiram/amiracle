@@ -13,7 +13,9 @@ and experience.
 
 1. Install dependencies with `npm ci`.
 2. Copy `.env.example` to `.env` and configure the required values:
-   - `DATABASE_URL`: PostgreSQL connection string.
+   - `DATABASE_URL`: PostgreSQL runtime connection string.
+   - `DATABASE_URL_UNPOOLED`: direct PostgreSQL connection string for Prisma
+     migrations. For local PostgreSQL, this can be the same as `DATABASE_URL`.
    - `ADMIN_EMAIL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`: initial admin account;
      use a unique password of at least 16 characters.
    - `ADMIN_SESSION_SECRET`: a cryptographically random secret of at least 32
@@ -32,11 +34,25 @@ for a public deployment.
 
 ## Production
 
-Configure `DATABASE_URL`, `ADMIN_EMAIL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`,
-`ADMIN_SESSION_SECRET`, and `NEXT_PUBLIC_SITE_URL` in the hosting provider.
-Apply forward migrations with `npm run db:migrate`; run `npm run db:seed` once
-after setting the initial admin credentials. The seed is repeatable and does
-not reset the database.
+For Neon, create a production database and copy both connection strings from
+the Neon dashboard's **Connect** dialog:
+
+- Set `DATABASE_URL` to the pooled connection string for the app runtime. The
+  hostname should include `-pooler`.
+- Set `DATABASE_URL_UNPOOLED` to the direct, non-pooled connection string.
+  Prisma uses it for schema and migration operations.
+
+Add both database variables, along with `ADMIN_EMAIL`, `ADMIN_USERNAME`,
+`ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`, and `NEXT_PUBLIC_SITE_URL`, to the
+hosting provider's production environment. Keep both database URLs secret and
+do not commit them to the repository.
+
+Use a new, empty Neon database or branch for the first deployment: the
+committed migrations create the schema and are not a baseline for an existing
+database. Before directing production traffic to the deployment, run
+`npm run db:migrate` with `DATABASE_URL_UNPOOLED` configured for that database.
+Run `npm run db:seed` once with the initial admin credentials configured; the
+seed is repeatable and does not reset the database.
 
 Run `npm run build` to create a production build and `npm run start` to serve
 it. Do not use `npm run db:push` for production; use the checked-in migration
