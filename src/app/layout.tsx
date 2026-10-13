@@ -1,22 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
+import { DM_Mono, Instrument_Sans } from "next/font/google";
+import Script from "next/script";
 import { getPublicSiteData } from "@/lib/portfolio-data";
 import { getPublicSiteUrl } from "@/lib/env";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const instrumentSans = Instrument_Sans({
+  variable: "--font-instrument-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const instrumentSerif = Instrument_Serif({
-  variable: "--font-instrument-serif",
-  weight: "400",
+const dmMono = DM_Mono({
+  variable: "--font-dm-mono",
+  weight: ["400", "500"],
   subsets: ["latin"],
 });
 
@@ -46,6 +42,20 @@ export async function generateMetadata(): Promise<Metadata> {
       title: site.name,
       description,
     },
+    icons: {
+      icon: [
+        { url: "/brand/favicon.svg", type: "image/svg+xml" },
+        { url: "/brand/favicon-16.png", type: "image/png", sizes: "16x16" },
+        { url: "/brand/favicon-32.png", type: "image/png", sizes: "32x32" },
+        { url: "/brand/favicon-48.png", type: "image/png", sizes: "48x48" },
+        { url: "/brand/icon-512.png", type: "image/png", sizes: "512x512" },
+      ],
+      apple: {
+        url: "/brand/apple-touch-icon-180.png",
+        sizes: "180x180",
+        type: "image/png",
+      },
+    },
   };
 }
 
@@ -57,10 +67,23 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full antialiased`}
+      data-theme="dark"
+      className={`${instrumentSans.variable} ${dmMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body>{children}</body>
+      <body>
+        {children}
+        <Script id="theme-preference" strategy="beforeInteractive">
+          {`try {
+  const theme = window.localStorage.getItem("amiracle-theme");
+  if (theme === "light" || theme === "dark") {
+    document.documentElement.dataset.theme = theme;
+  }
+} catch {
+  document.documentElement.dataset.theme = "dark";
+}`}
+        </Script>
+      </body>
     </html>
   );
 }
