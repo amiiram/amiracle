@@ -5,29 +5,29 @@ import { SiteHeader } from "@/components/site-header";
 
 export default function NotFound() {
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden">
+    <div className="flex min-h-screen w-full flex-col">
       <SiteHeader />
 
       <main className="flex flex-1 w-full items-center justify-center px-4 py-4 sm:px-6 sm:py-6">
         <div className="flex w-full max-w-180 flex-col items-center justify-center gap-6 sm:gap-8">
           <div className="flex w-full flex-col items-center justify-start gap-3 text-center sm:gap-4">
-            <div className="inline-flex items-center gap-2 rounded-xs bg-[#111114] px-2.5 py-1 ring-1 ring-inset ring-[#EF4444] sm:px-3 sm:py-1.2">
+            <div className="inline-flex items-center gap-2 rounded-none border border-[var(--am-danger)] bg-[var(--am-surface)] px-2.5 py-1 sm:px-3 sm:py-1.2">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-[#EF4444]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-[var(--am-danger)]" />
               </span>
-              <span className="font-mono text-[10px] font-normal uppercase tracking-wider text-[#EF4444] sm:text-[11px]">
+              <span className="font-mono text-[10px] font-normal uppercase tracking-wider text-[var(--am-danger)] sm:text-[11px]">
                 CRITICAL_ERROR // RESOURCE_NOT_FOUND
               </span>
             </div>
 
             <div
-              className="w-full text-center text-[76px] font-normal leading-none tracking-tight text-[#F4F4F6] sm:text-[100px] md:text-[120px]"
-              style={{ fontFamily: "var(--font-instrument-serif), serif" }}
+              className="w-full text-center text-[76px] font-normal leading-none tracking-tight text-[var(--am-text)] sm:text-[100px] md:text-[120px]"
+              style={{ fontFamily: "var(--am-font-sans)" }}
             >
               404
             </div>
 
-            <p className="max-w-145 text-center font-sans text-sm font-normal leading-relaxed text-[#8E8E93] sm:text-base md:text-lg">
+            <p className="max-w-145 text-center font-sans text-sm font-normal leading-relaxed text-[var(--am-text-muted)] sm:text-base md:text-lg">
               The route is missing. Either the page never shipped or the
               compiler lost the path. Either way, the system is still running.
             </p>
@@ -38,13 +38,13 @@ export default function NotFound() {
           <div className="inline-flex flex-wrap items-center justify-center gap-3 sm:gap-4">
             <Link
               href="/"
-              className="inline-flex items-center justify-center rounded-xs bg-[#F4F4F6] px-5 py-2.5 font-mono text-xs font-semibold text-[#0A0A0C] transition hover:bg-white sm:px-6 sm:py-3 sm:text-[13px]"
+              className="inline-flex items-center justify-center rounded-none bg-[var(--am-btn-bg)] px-5 py-2.5 font-mono text-xs font-semibold text-[var(--am-btn-fg)] transition hover:bg-[var(--am-btn-bg-hover)] sm:px-6 sm:py-3 sm:text-[13px]"
             >
               Return to home
             </Link>
             <Link
               href="/#work"
-              className="inline-flex items-center justify-center rounded-xs bg-transparent px-5 py-2.5 font-mono text-xs font-normal text-[#F4F4F6] ring-1 ring-inset ring-[#222226] transition hover:border-[#38383e] hover:bg-[#111114] sm:px-6 sm:py-3 sm:text-[13px]"
+              className="inline-flex items-center justify-center rounded-none border border-[var(--am-control-border)] bg-transparent px-5 py-2.5 font-mono text-xs font-normal text-[var(--am-text)] transition hover:bg-[var(--am-surface-2)] sm:px-6 sm:py-3 sm:text-[13px]"
             >
               Browse work instead
             </Link>
