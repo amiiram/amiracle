@@ -31,8 +31,10 @@ export type Project = {
   technologies: string[];
   visibility: "PUBLIC";
   featured: boolean;
-  publishedAt: Date | null;
-  updatedAt: Date;
+  /** ISO 8601 string; view models cross the JSON cache boundary. */
+  publishedAt: string | null;
+  /** ISO 8601 string; view models cross the JSON cache boundary. */
+  updatedAt: string;
   media: ProjectMediaItem[];
 };
 
@@ -47,7 +49,8 @@ export type ExperienceItem = {
   endDate?: string;
   isCurrent: boolean;
   description: string;
-  updatedAt: Date;
+  /** ISO 8601 string; view models cross the JSON cache boundary. */
+  updatedAt: string;
   technologies: Array<{ id: string; name: string }>;
   projects: PublicProjectPreview[];
 };
@@ -232,8 +235,8 @@ function toProjectViewModel(project: {
     technologies: project.Technology.map((technology) => technology.name),
     visibility: "PUBLIC",
     featured: project.featured,
-    publishedAt: project.publishedAt,
-    updatedAt: project.updatedAt,
+    publishedAt: project.publishedAt?.toISOString() ?? null,
+    updatedAt: project.updatedAt.toISOString(),
     media: project.ProjectMedia.map((media) => ({
       url: media.url,
       type: media.type,
@@ -286,7 +289,7 @@ function toExperienceViewModel(
     endDate: dates.end,
     isCurrent: row.isCurrent,
     description: row.description ?? "",
-    updatedAt: row.updatedAt,
+    updatedAt: row.updatedAt.toISOString(),
     technologies: row.Technology,
     projects: row.Project.filter(isPublicProject).map((project) => ({
       slug: project.slug,

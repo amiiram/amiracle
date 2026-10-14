@@ -127,10 +127,8 @@ export default async function ProjectDetailPage({
               .filter((item) => item.type === "image")
               .slice(0, 3)
               .map((item) => canonicalUrl(item.url) ?? item.url),
-            datePublished: project.publishedAt
-              ? project.publishedAt.toISOString()
-              : undefined,
-            dateModified: project.updatedAt.toISOString(),
+            datePublished: project.publishedAt ?? undefined,
+            dateModified: project.updatedAt,
           }),
         }}
       />

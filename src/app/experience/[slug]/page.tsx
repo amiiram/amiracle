@@ -73,7 +73,7 @@ export default async function ExperienceDetailPage({
             headline: `${experience.role} at ${experience.company}`,
             description: experience.summary || undefined,
             url: canonicalUrl(`/experience/${encodeURIComponent(experience.slug)}`),
-            dateModified: experience.updatedAt.toISOString(),
+            dateModified: experience.updatedAt,
             author: { "@type": "Person", name: experience.company },
           }),
         }}
