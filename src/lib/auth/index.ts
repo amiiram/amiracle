@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 
+import { cache } from "react";
+
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -8,6 +10,14 @@ import {
   verifyPassword as verifyPasswordSync,
 } from "@/lib/auth/password.mjs";
 import { prisma } from "@/lib/db/prisma";
+
+export { burnPasswordVerification } from "@/lib/auth/password.mjs";
+
+export {
+  clearLoginThrottle,
+  peekLoginThrottle,
+  recordLoginFailure,
+} from "@/lib/auth/login-throttle";
 
 export const adminSessionCookie = "amiracle_admin_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
@@ -128,7 +138,12 @@ export async function getCurrentAdminSession() {
   return verifySessionToken(sessionToken);
 }
 
-export async function getCurrentAdminUser() {
+/**
+ * Memoized per render pass: the dashboard layout and each page/action call
+ * `requireAdminSession()`, so without `cache()` every request would query the
+ * admin row once per call site.
+ */
+export const getCurrentAdminUser = cache(async () => {
   const session = await getCurrentAdminSession();
 
   if (!session) {
@@ -144,7 +159,7 @@ export async function getCurrentAdminUser() {
   }
 
   return user;
-}
+});
 
 export async function requireAdminSession() {
   const user = await getCurrentAdminUser();

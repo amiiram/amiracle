@@ -1,11 +1,24 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
-export default function AdminDashboardLayout({
+import { requireAdminSession } from "@/lib/auth";
+
+/**
+ * Structural authentication boundary for every dashboard route.
+ *
+ * Each page and server action already calls `requireAdminSession()` on its own,
+ * but that relies on each new file remembering to do so. Guarding here means a
+ * page added under `(dashboard)` is private by default and can only be exposed
+ * deliberately. It must stay a call inside an async Server Component (not a
+ * middleware matcher) so it can read the session cookie and query the user.
+ */
+export default async function AdminDashboardLayout({
   children,
 }: {
   children: ReactNode;
 }) {
+  await requireAdminSession();
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">

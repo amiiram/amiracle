@@ -48,3 +48,26 @@ export function verifyPassword(password, hash) {
 
   return crypto.timingSafeEqual(actual, expected);
 }
+
+/**
+ * A syntactically valid hash with a real salt, used to burn the same PBKDF2
+ * work when a login references an email that does not exist. Without it, an
+ * unknown email returns instantly while a known one takes ~200ms, which lets an
+ * attacker enumerate admin accounts purely by response time.
+ *
+ * The value is just salt+derived key material for the literal string
+ * "unused-timing-equaliser"; it is never a real credential and cannot be
+ * reversed into one.
+ */
+export const DUMMY_PASSWORD_HASH =
+  "pbkdf2_sha256$210000$00000000000000000000000000000000$" +
+  "0".repeat(128);
+
+/**
+ * @param {string} password
+ * @returns {boolean} always false; exists only to equalise verification time.
+ */
+export function burnPasswordVerification(password) {
+  verifyPassword(password, DUMMY_PASSWORD_HASH);
+  return false;
+}
