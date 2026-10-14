@@ -2,11 +2,12 @@
 
 import { Locale, ThemeMode, Prisma } from "@prisma/client";
 import crypto from "node:crypto";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { PUBLIC_PORTFOLIO_CACHE_TAG } from "@/lib/portfolio-cache";
 import {
   SITE_SETTINGS_ID,
   siteSettingsSchema,
@@ -124,6 +125,7 @@ export async function updateSiteSettingsAction(
     return { success: false, message: SAVE_FAILURE_MESSAGE, values };
   }
 
+  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
   revalidatePath(ADMIN_SETTINGS_PATH);
   for (const path of [...PUBLIC_PATHS, PUBLIC_ABOUT_PATH]) {
     revalidatePath(path);
@@ -192,6 +194,7 @@ export async function updateSocialLinkAction(
     return { success: false, message: LINK_SAVE_FAILURE_MESSAGE, values };
   }
 
+  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
   revalidatePath(ADMIN_SETTINGS_PATH);
   for (const path of PUBLIC_PATHS) {
     revalidatePath(path);
@@ -247,6 +250,7 @@ export async function createSocialLinkAction(
     return { success: false, message: LINK_SAVE_FAILURE_MESSAGE, values };
   }
 
+  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
   revalidatePath(ADMIN_SETTINGS_PATH);
   for (const path of PUBLIC_PATHS) {
     revalidatePath(path);

@@ -1,7 +1,9 @@
 import { cache } from "react";
 import type { Prisma } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 
 import { prisma } from "@/lib/db/prisma";
+import { PUBLIC_PORTFOLIO_CACHE_TAG } from "@/lib/portfolio-cache";
 import { SITE_SETTINGS_ID } from "@/lib/validations/site";
 import { isPublicProject } from "@/lib/project-visibility.mjs";
 
@@ -29,6 +31,8 @@ export type Project = {
   technologies: string[];
   visibility: "PUBLIC";
   featured: boolean;
+  publishedAt: Date | null;
+  updatedAt: Date;
   media: ProjectMediaItem[];
 };
 
@@ -43,6 +47,7 @@ export type ExperienceItem = {
   endDate?: string;
   isCurrent: boolean;
   description: string;
+  updatedAt: Date;
   technologies: Array<{ id: string; name: string }>;
   projects: PublicProjectPreview[];
 };
@@ -89,8 +94,8 @@ function logDataError(message: string, error: unknown) {
   );
 }
 
-export const getPublicSiteData = cache(async (): Promise<PublicSiteData> => {
-  try {
+const loadPublicSiteData = unstable_cache(
+  async (): Promise<PublicSiteData> => {
     const [settings, links] = await Promise.all([
       prisma.siteSettings.findUnique({
         where: { id: SITE_SETTINGS_ID },
@@ -114,20 +119,33 @@ export const getPublicSiteData = cache(async (): Promise<PublicSiteData> => {
         href: link.url,
       })),
     };
+  },
+  ["public-site-data"],
+  { tags: [PUBLIC_PORTFOLIO_CACHE_TAG], revalidate: false },
+);
+
+export const getPublicSiteData = cache(async (): Promise<PublicSiteData> => {
+  try {
+    return await loadPublicSiteData();
   } catch (error) {
     logDataError("Unable to load public site settings and social links.", error);
     return defaultSiteData;
   }
 });
 
-export const getPublicTechnologies = cache(async () => {
-  try {
-    const rows = await prisma.technology.findMany({
+const loadPublicTechnologies = unstable_cache(
+  async () =>
+    prisma.technology.findMany({
       orderBy: [{ order: "asc" }, { name: "asc" }],
       select: { id: true, name: true },
-    });
+    }),
+  ["public-technologies"],
+  { tags: [PUBLIC_PORTFOLIO_CACHE_TAG], revalidate: false },
+);
 
-    return rows;
+export const getPublicTechnologies = cache(async () => {
+  try {
+    return await loadPublicTechnologies();
   } catch (error) {
     logDataError("Unable to load public technologies.", error);
     return [];
@@ -156,8 +174,8 @@ function toDateRange(startDate: Date, endDate: Date | null, isCurrent: boolean) 
   return { start, end };
 }
 
-export const getPublicEducation = cache(async (): Promise<EducationItem[]> => {
-  try {
+const loadPublicEducation = unstable_cache(
+  async (): Promise<EducationItem[]> => {
     const rows = await prisma.education.findMany({
       orderBy: [{ startDate: "desc" }, { school: "asc" }],
     });
@@ -171,6 +189,14 @@ export const getPublicEducation = cache(async (): Promise<EducationItem[]> => {
       endDate: row.endDate ? formatDate(row.endDate) : "",
       description: row.description ?? "",
     }));
+  },
+  ["public-education"],
+  { tags: [PUBLIC_PORTFOLIO_CACHE_TAG], revalidate: false },
+);
+
+export const getPublicEducation = cache(async (): Promise<EducationItem[]> => {
+  try {
+    return await loadPublicEducation();
   } catch (error) {
     logDataError("Unable to load public education.", error);
     return [];
@@ -187,6 +213,7 @@ function toProjectViewModel(project: {
   visibility: string;
   featured: boolean;
   publishedAt: Date | null;
+  updatedAt: Date;
   Technology: Array<{ name: string }>;
   ProjectMedia: Array<{
     url: string;
@@ -205,6 +232,8 @@ function toProjectViewModel(project: {
     technologies: project.Technology.map((technology) => technology.name),
     visibility: "PUBLIC",
     featured: project.featured,
+    publishedAt: project.publishedAt,
+    updatedAt: project.updatedAt,
     media: project.ProjectMedia.map((media) => ({
       url: media.url,
       type: media.type,
@@ -257,6 +286,7 @@ function toExperienceViewModel(
     endDate: dates.end,
     isCurrent: row.isCurrent,
     description: row.description ?? "",
+    updatedAt: row.updatedAt,
     technologies: row.Technology,
     projects: row.Project.filter(isPublicProject).map((project) => ({
       slug: project.slug,
@@ -279,20 +309,34 @@ async function findPublicExperiences(
   return rows.map(toExperienceViewModel);
 }
 
+const loadPublicExperiences = unstable_cache(
+  async () => findPublicExperiences(),
+  ["public-experiences"],
+  { tags: [PUBLIC_PORTFOLIO_CACHE_TAG], revalidate: false },
+);
+
 export const getPublicExperiences = cache(async (): Promise<ExperienceItem[]> => {
   try {
-    return await findPublicExperiences();
+    return await loadPublicExperiences();
   } catch (error) {
     logDataError("Unable to load public experience.", error);
     return [];
   }
 });
 
+const loadPublicExperienceBySlug = unstable_cache(
+  async (slug: string): Promise<ExperienceItem | null> => {
+    const [experience] = await findPublicExperiences({ slug });
+    return experience ?? null;
+  },
+  ["public-experience-by-slug"],
+  { tags: [PUBLIC_PORTFOLIO_CACHE_TAG], revalidate: false },
+);
+
 export const getPublicExperienceBySlug = cache(
   async (slug: string): Promise<ExperienceItem | null> => {
     try {
-      const [experience] = await findPublicExperiences({ slug });
-      return experience ?? null;
+      return await loadPublicExperienceBySlug(slug);
     } catch (error) {
       logDataError("Unable to load the requested public experience.", error);
       return null;
@@ -305,8 +349,8 @@ const projectIncludes = {
   ProjectMedia: { orderBy: { order: "asc" as const } },
 };
 
-export const getPublicProjects = cache(async (): Promise<Project[]> => {
-  try {
+const loadPublicProjects = unstable_cache(
+  async (): Promise<Project[]> => {
     const rows = await prisma.project.findMany({
       where: { status: "published", visibility: "PUBLIC" },
       orderBy: [
@@ -318,23 +362,39 @@ export const getPublicProjects = cache(async (): Promise<Project[]> => {
     });
 
     return rows.filter(isPublicProject).map(toProjectViewModel);
+  },
+  ["public-projects"],
+  { tags: [PUBLIC_PORTFOLIO_CACHE_TAG], revalidate: false },
+);
+
+export const getPublicProjects = cache(async (): Promise<Project[]> => {
+  try {
+    return await loadPublicProjects();
   } catch (error) {
     logDataError("Unable to load public projects.", error);
     return [];
   }
 });
 
+const loadProjectBySlug = unstable_cache(
+  async (slug: string): Promise<Project | null> => {
+    const project = await prisma.project.findFirst({
+      where: { slug, status: "published", visibility: "PUBLIC" },
+      include: projectIncludes,
+    });
+
+    return project && isPublicProject(project)
+      ? toProjectViewModel(project)
+      : null;
+  },
+  ["public-project-by-slug"],
+  { tags: [PUBLIC_PORTFOLIO_CACHE_TAG], revalidate: false },
+);
+
 export const getProjectBySlug = cache(
   async (slug: string): Promise<Project | null> => {
     try {
-      const project = await prisma.project.findFirst({
-        where: { slug, status: "published", visibility: "PUBLIC" },
-        include: projectIncludes,
-      });
-
-      return project && isPublicProject(project)
-        ? toProjectViewModel(project)
-        : null;
+      return await loadProjectBySlug(slug);
     } catch (error) {
       logDataError("Unable to load the requested public project.", error);
       return null;

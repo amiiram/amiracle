@@ -3,11 +3,12 @@
 import crypto from "node:crypto";
 
 import { Prisma } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { PUBLIC_PORTFOLIO_CACHE_TAG } from "@/lib/portfolio-cache";
 import { experienceSchema } from "@/lib/validations/content";
 import {
   FORM_VALIDATION_MESSAGE,
@@ -76,6 +77,7 @@ function logActionError(message: string, error: unknown) {
 }
 
 function revalidateExperiencePaths() {
+  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
   revalidatePath(ADMIN_EXPERIENCE_PATH);
   revalidatePath(PUBLIC_EXPERIENCE_PATH);
   revalidatePath(ABOUT_PATH);

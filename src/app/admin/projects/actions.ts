@@ -3,11 +3,12 @@
 import crypto from "node:crypto";
 
 import { Prisma, ProjectMediaType } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/db/prisma";
+import { PUBLIC_PORTFOLIO_CACHE_TAG } from "@/lib/portfolio-cache";
 import {
   projectMediaSchema,
   projectSchema,
@@ -413,6 +414,7 @@ export async function createProjectAction(
   }
 
   revalidatePath(ADMIN_PROJECTS_PATH);
+  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
   await revalidatePublicProject(parsed.data.slug);
   redirect(ADMIN_PROJECTS_PATH);
 }
@@ -513,6 +515,7 @@ export async function updateProjectAction(
       await syncProjectMedia(tx, projectId, mediaRows);
     });
 
+    updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
     revalidatePath(`${PUBLIC_PROJECT_PATH_PREFIX}/${project.slug}`);
 
     if (project.slug !== parsed.data.slug) {
@@ -584,6 +587,7 @@ export async function deleteProjectAction(formData: FormData) {
     where: { id: projectId },
   });
 
+  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
   revalidatePath(ADMIN_PROJECTS_PATH);
   await revalidatePublicProject(project.slug);
 }
@@ -618,5 +622,6 @@ export async function toggleProjectPublishAction(formData: FormData) {
     },
   });
 
+  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
   revalidatePath(ADMIN_PROJECTS_PATH);
 }
