@@ -76,6 +76,7 @@ export type MarkdownEditorProps = {
   /** Existing `ProjectMedia` rows, used only to suggest alt text. */
   projectMedia?: ReadonlyArray<MarkdownMediaHint>;
   showMediaPicker?: boolean;
+  mediaPickerMode?: "simple" | "details";
   lineBreaks?: boolean;
   headingOffset?: 0 | 1;
   invalid?: boolean;
@@ -198,16 +199,21 @@ async function loadPublicMedia(): Promise<PublicMediaItem[]> {
  */
 function MediaPickerDialog({
   projectSlug,
+  mode,
   onSelect,
   onClose,
 }: {
   projectSlug?: string;
-  onSelect: (item: PublicMediaItem) => void;
+  mode: "simple" | "details";
+  onSelect: (item: PublicMediaItem, altText: string, caption: string) => void;
   onClose: () => void;
 }) {
   const [files, setFiles] = useState<PublicMediaItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [selectedItem, setSelectedItem] = useState<PublicMediaItem | null>(null);
+  const [altText, setAltText] = useState("");
+  const [caption, setCaption] = useState("");
   const titleId = useId();
 
   const load = useCallback(() => {
@@ -276,8 +282,22 @@ function MediaPickerDialog({
     <li key={file.url}>
       <button
         type="button"
-        onClick={() => onSelect(file)}
-        className="flex w-full items-center gap-3 rounded-xl border border-slate-800 bg-slate-900/60 p-2 text-left transition hover:border-slate-500"
+        onClick={() => {
+          if (mode === "simple") {
+            onSelect(file, toAltTextFromFilename(file.filename), "");
+            return;
+          }
+
+          setSelectedItem(file);
+          setAltText(toAltTextFromFilename(file.filename));
+          setCaption("");
+        }}
+        aria-pressed={mode === "details" ? selectedItem?.url === file.url : undefined}
+        className={`flex w-full items-center gap-3 rounded-xl border p-2 text-left transition ${
+          mode === "details" && selectedItem?.url === file.url
+            ? "border-slate-300 bg-slate-900"
+            : "border-slate-800 bg-slate-900/60 hover:border-slate-500"
+        }`}
       >
         <span className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
           {file.type === "image" ? (
@@ -385,13 +405,63 @@ function MediaPickerDialog({
               ) : null}
             </div>
           )}
+
+          {mode === "details" && selectedItem ? (
+            <div className="mt-4 grid gap-3 border-t border-slate-800 pt-4">
+              <div className="space-y-1.5">
+                <label
+                  htmlFor={`${titleId}-alt`}
+                  className="block text-xs font-medium text-slate-300"
+                >
+                  Alt text
+                </label>
+                <input
+                  id={`${titleId}-alt`}
+                  value={altText}
+                  onChange={(event) => setAltText(event.target.value)}
+                  maxLength={500}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-slate-400 focus:outline-none"
+                  placeholder="Describe the image or video"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label
+                  htmlFor={`${titleId}-caption`}
+                  className="block text-xs font-medium text-slate-300"
+                >
+                  Caption <span className="text-slate-500">(optional)</span>
+                </label>
+                <input
+                  id={`${titleId}-caption`}
+                  value={caption}
+                  onChange={(event) => setCaption(event.target.value)}
+                  maxLength={500}
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:border-slate-400 focus:outline-none"
+                  placeholder="Caption shown below the media"
+                />
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-slate-800 px-4 py-3">
           <p className="text-[11px] text-slate-500">
-            Videos are inserted as{" "}
-            <code>{`![alt](/media/.../file.mp4)`}</code>.
+            Videos are inserted using the same Markdown media syntax as images.
           </p>
+          {mode === "details" ? (
+            <button
+              type="button"
+              className={insertMediaButtonClassName}
+              disabled={!selectedItem}
+              onClick={() => {
+                if (selectedItem) {
+                  onSelect(selectedItem, altText, caption);
+                }
+              }}
+            >
+              Insert media
+            </button>
+          ) : null}
           <button
             type="button"
             className={toolbarButtonIdleClassName}
@@ -421,6 +491,7 @@ export function MarkdownEditor({
   projectSlug,
   projectMedia,
   showMediaPicker = true,
+  mediaPickerMode = "simple",
   lineBreaks,
   headingOffset,
   invalid,
@@ -453,17 +524,22 @@ export function MarkdownEditor({
   );
 
   const insertMedia = useCallback(
-    (item: PublicMediaItem) => {
+    (item: PublicMediaItem, chosenAltText: string, caption: string) => {
       const knownAlt = projectMedia?.find(
         (media) => media.url === item.url,
       )?.alt;
-      const altText = knownAlt?.trim() || toAltTextFromFilename(item.filename);
+      const altText =
+        knownAlt?.trim() ||
+        chosenAltText.trim() ||
+        toAltTextFromFilename(item.filename);
 
       setPickerOpen(false);
       setMode("write");
       insertToken.current += 1;
       setInsertRequest({
-        markdown: toMarkdownSnippet(item, altText),
+        markdown: `${toMarkdownSnippet(item, altText)}${
+          caption.trim() ? `\n\n${caption.trim()}` : ""
+        }`,
         token: insertToken.current,
       });
     },
@@ -545,6 +621,7 @@ export function MarkdownEditor({
       {pickerOpen ? (
         <MediaPickerDialog
           projectSlug={projectSlug}
+          mode={mediaPickerMode}
           onSelect={insertMedia}
           onClose={() => setPickerOpen(false)}
         />
@@ -572,6 +649,7 @@ export function MarkdownField({
   projectSlug,
   projectMedia,
   showMediaPicker = true,
+  mediaPickerMode = "simple",
   lineBreaks,
   headingOffset,
   fieldErrors,
@@ -584,6 +662,7 @@ export function MarkdownField({
   projectSlug?: string;
   projectMedia?: ReadonlyArray<MarkdownMediaHint>;
   showMediaPicker?: boolean;
+  mediaPickerMode?: "simple" | "details";
   lineBreaks?: boolean;
   headingOffset?: 0 | 1;
   fieldErrors?: Record<string, string[]>;
@@ -612,6 +691,7 @@ export function MarkdownField({
         projectSlug={projectSlug}
         projectMedia={projectMedia}
         showMediaPicker={showMediaPicker}
+        mediaPickerMode={mediaPickerMode}
         lineBreaks={lineBreaks}
         headingOffset={headingOffset}
       />
@@ -630,4 +710,3 @@ export function MarkdownField({
     </div>
   );
 }
-

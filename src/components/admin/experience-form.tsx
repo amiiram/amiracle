@@ -263,7 +263,7 @@ export function ExperienceForm({
         label="Main description (Markdown)"
         defaultValue={values.description}
         placeholder="Describe verified work and responsibilities in Markdown."
-        showMediaPicker={false}
+        mediaPickerMode="details"
         lineBreaks
         headingOffset={1}
         fieldErrors={fieldErrors}
