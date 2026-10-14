@@ -3,16 +3,22 @@
 import crypto from "node:crypto";
 
 import { Prisma, ProjectMediaType } from "@prisma/client";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/auth";
+import { revalidatePortfolio } from "@/lib/admin/revalidate";
 import { prisma } from "@/lib/db/prisma";
-import { PUBLIC_PORTFOLIO_CACHE_TAG } from "@/lib/portfolio-cache";
 import {
   projectMediaSchema,
   projectSchema,
 } from "@/lib/validations/content";
+import {
+  readCheckbox,
+  readFieldText,
+  readIdList,
+  toFieldErrors,
+} from "@/lib/validations/form-state";
 
 export type ProjectMediaFormValues = {
   id?: string;
@@ -68,51 +74,18 @@ function normalizeResponsibilities(value: FormDataEntryValue | null) {
     .filter(Boolean);
 }
 
-function toFieldErrors(error: {
-  fieldErrors?: Record<string, string[] | undefined>;
-  issues?: { path: (string | number)[]; message: string }[];
-}): Record<string, string[]> {
-  // If the error has fieldErrors from a flatten operation, use those
-  if (error.fieldErrors) {
-    return Object.fromEntries(
-      Object.entries(error.fieldErrors).flatMap(([key, value]) => [
-        [key, value ?? []],
-      ]),
-    ) as Record<string, string[]>;
-  }
-
-  // Fallback: build field errors from Zod issues directly
-  const fieldErrors: Record<string, string[]> = {};
-
-  if (error.issues) {
-    for (const issue of error.issues) {
-      const [field] = issue.path;
-
-      if (typeof field !== "string") {
-        continue;
-      }
-
-      fieldErrors[field] = [...(fieldErrors[field] ?? []), issue.message];
-    }
-  }
-
-  return fieldErrors;
-}
-
 function getSubmittedValues(formData: FormData): ProjectFormValues {
   return {
-    title: String(formData.get("title") ?? "").trim(),
-    slug: String(formData.get("slug") ?? "").trim(),
-    excerpt: String(formData.get("excerpt") ?? "").trim(),
-    description: String(formData.get("description") ?? "").trim(),
-    responsibilities: String(formData.get("responsibilities") ?? "").trim(),
-    status: String(formData.get("status") ?? "draft").trim(),
-    visibility: String(formData.get("visibility") ?? "PUBLIC").trim(),
-    featured: formData.get("featured") === "on",
-    publishedAt: String(formData.get("publishedAt") ?? "").trim(),
-    technologyIds: formData
-      .getAll("technologyIds")
-      .map((value) => String(value)),
+    title: readFieldText(formData, "title").trim(),
+    slug: readFieldText(formData, "slug").trim(),
+    excerpt: readFieldText(formData, "excerpt").trim(),
+    description: readFieldText(formData, "description").trim(),
+    responsibilities: readFieldText(formData, "responsibilities").trim(),
+    status: readFieldText(formData, "status").trim() || "draft",
+    visibility: readFieldText(formData, "visibility").trim() || "PUBLIC",
+    featured: readCheckbox(formData, "featured"),
+    publishedAt: readFieldText(formData, "publishedAt").trim(),
+    technologyIds: readIdList(formData, "technologyIds"),
     media: readMediaRows(formData),
   };
 }
@@ -268,8 +241,8 @@ async function syncProjectMedia(
   }
 }
 
-async function revalidatePublicProject(slug: string) {
-  revalidatePath(`${PUBLIC_PROJECT_PATH_PREFIX}/${slug}`);
+function publicProjectPath(slug: string) {
+  return `${PUBLIC_PROJECT_PATH_PREFIX}/${slug}`;
 }
 
 async function validateTechnologySelection(technologyIds: string[]) {
@@ -319,7 +292,7 @@ export async function createProjectAction(
     return {
       success: false,
       message: "Please fix the highlighted project fields and try again.",
-      fieldErrors: toFieldErrors(parsed.error.flatten()),
+      fieldErrors: toFieldErrors(parsed.error),
       values,
     };
   }
@@ -413,9 +386,10 @@ export async function createProjectAction(
     };
   }
 
-  revalidatePath(ADMIN_PROJECTS_PATH);
-  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
-  await revalidatePublicProject(parsed.data.slug);
+  revalidatePortfolio([
+    ADMIN_PROJECTS_PATH,
+    publicProjectPath(parsed.data.slug),
+  ]);
   redirect(ADMIN_PROJECTS_PATH);
 }
 
@@ -446,7 +420,7 @@ export async function updateProjectAction(
     return {
       success: false,
       message: "Please fix the highlighted project fields and try again.",
-      fieldErrors: toFieldErrors(parsed.error.flatten()),
+      fieldErrors: toFieldErrors(parsed.error),
       values,
     };
   }
@@ -515,12 +489,13 @@ export async function updateProjectAction(
       await syncProjectMedia(tx, projectId, mediaRows);
     });
 
-    updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
-    revalidatePath(`${PUBLIC_PROJECT_PATH_PREFIX}/${project.slug}`);
+    const paths = [publicProjectPath(project.slug)];
 
     if (project.slug !== parsed.data.slug) {
-      revalidatePath(`${PUBLIC_PROJECT_PATH_PREFIX}/${parsed.data.slug}`);
+      paths.push(publicProjectPath(parsed.data.slug));
     }
+
+    revalidatePortfolio(paths);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === "P2002") {
@@ -587,9 +562,10 @@ export async function deleteProjectAction(formData: FormData) {
     where: { id: projectId },
   });
 
-  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
-  revalidatePath(ADMIN_PROJECTS_PATH);
-  await revalidatePublicProject(project.slug);
+  revalidatePortfolio([
+    ADMIN_PROJECTS_PATH,
+    publicProjectPath(project.slug),
+  ]);
 }
 
 export async function toggleProjectPublishAction(formData: FormData) {
@@ -622,6 +598,5 @@ export async function toggleProjectPublishAction(formData: FormData) {
     },
   });
 
-  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
-  revalidatePath(ADMIN_PROJECTS_PATH);
+  revalidatePortfolio([ADMIN_PROJECTS_PATH]);
 }

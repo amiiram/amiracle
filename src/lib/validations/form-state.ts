@@ -40,3 +40,24 @@ export function readFieldText(formData: FormData, field: string) {
 
   return typeof value === "string" ? value : "";
 }
+
+/** Reads a checkbox field: checked boxes submit the literal `"on"`. */
+export function readCheckbox(formData: FormData, field: string) {
+  return formData.get(field) === "on";
+}
+
+/**
+ * Reads a multi-value field (checkbox group), dropping non-string entries.
+ * Single checkboxes must use {@link readCheckbox} instead.
+ */
+export function readIdList(formData: FormData, field: string): string[] {
+  return formData.getAll(field).flatMap((value) => {
+    if (typeof value !== "string") {
+      return [];
+    }
+
+    const trimmed = value.trim();
+
+    return trimmed ? [trimmed] : [];
+  });
+}

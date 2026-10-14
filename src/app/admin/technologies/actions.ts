@@ -3,12 +3,11 @@
 import crypto from "node:crypto";
 
 import { Prisma } from "@prisma/client";
-import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/auth";
+import { revalidatePortfolio } from "@/lib/admin/revalidate";
 import { prisma } from "@/lib/db/prisma";
-import { PUBLIC_PORTFOLIO_CACHE_TAG } from "@/lib/portfolio-cache";
 import { technologySchema } from "@/lib/validations/content";
 import {
   FORM_VALIDATION_MESSAGE,
@@ -138,11 +137,12 @@ function deleteFailure(error: unknown): TechnologyFormState {
 }
 
 function revalidateTechnologyPaths() {
-  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
-  revalidatePath(ADMIN_TECHNOLOGIES_PATH);
-  revalidatePath(ADMIN_PROJECTS_PATH);
-  revalidatePath(HOME_PATH);
-  revalidatePath(ABOUT_PATH);
+  revalidatePortfolio([
+    ADMIN_TECHNOLOGIES_PATH,
+    ADMIN_PROJECTS_PATH,
+    HOME_PATH,
+    ABOUT_PATH,
+  ]);
 }
 
 /** True when another technology already owns the given name or slug. */

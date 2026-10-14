@@ -3,16 +3,18 @@
 import crypto from "node:crypto";
 
 import { Prisma } from "@prisma/client";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/auth";
+import { revalidatePortfolio } from "@/lib/admin/revalidate";
 import { prisma } from "@/lib/db/prisma";
-import { PUBLIC_PORTFOLIO_CACHE_TAG } from "@/lib/portfolio-cache";
 import { experienceSchema } from "@/lib/validations/content";
 import {
   FORM_VALIDATION_MESSAGE,
+  readCheckbox,
   readFieldText,
+  readIdList,
   toFieldErrors,
   type FormState,
 } from "@/lib/validations/form-state";
@@ -46,14 +48,10 @@ function readExperienceValues(formData: FormData): ExperienceFormValues {
     summary: readFieldText(formData, "summary"),
     startDate: readFieldText(formData, "startDate"),
     endDate: readFieldText(formData, "endDate"),
-    isCurrent: formData.get("isCurrent") === "on",
+    isCurrent: readCheckbox(formData, "isCurrent"),
     description: readFieldText(formData, "description"),
-    projectIds: formData.getAll("projectIds").map((value) =>
-      typeof value === "string" ? value : "",
-    ),
-    technologyIds: formData.getAll("technologyIds").map((value) =>
-      typeof value === "string" ? value : "",
-    ),
+    projectIds: readIdList(formData, "projectIds"),
+    technologyIds: readIdList(formData, "technologyIds"),
   };
 }
 
@@ -77,10 +75,11 @@ function logActionError(message: string, error: unknown) {
 }
 
 function revalidateExperiencePaths() {
-  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
-  revalidatePath(ADMIN_EXPERIENCE_PATH);
-  revalidatePath(PUBLIC_EXPERIENCE_PATH);
-  revalidatePath(ABOUT_PATH);
+  revalidatePortfolio([
+    ADMIN_EXPERIENCE_PATH,
+    PUBLIC_EXPERIENCE_PATH,
+    ABOUT_PATH,
+  ]);
 }
 
 function duplicateSlugFailure(

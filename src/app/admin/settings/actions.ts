@@ -2,12 +2,11 @@
 
 import { Locale, ThemeMode, Prisma } from "@prisma/client";
 import crypto from "node:crypto";
-import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/auth";
+import { revalidatePortfolio } from "@/lib/admin/revalidate";
 import { prisma } from "@/lib/db/prisma";
-import { PUBLIC_PORTFOLIO_CACHE_TAG } from "@/lib/portfolio-cache";
 import {
   SITE_SETTINGS_ID,
   siteSettingsSchema,
@@ -15,6 +14,7 @@ import {
 } from "@/lib/validations/site";
 import {
   FORM_VALIDATION_MESSAGE,
+  readCheckbox,
   readFieldText,
   toFieldErrors,
   type FormState,
@@ -28,7 +28,6 @@ import {
  * `getAboutMarkdown()`, so that route is revalidated alongside the admin form.
  */
 const ADMIN_SETTINGS_PATH = "/admin/settings";
-const PUBLIC_ABOUT_PATH = "/about";
 const PUBLIC_PATHS = ["/", "/about", "/contact"];
 const SAVE_FAILURE_MESSAGE = "Unable to save the settings. Please try again.";
 const LINK_SAVE_FAILURE_MESSAGE =
@@ -83,7 +82,7 @@ function readSocialLinkValues(formData: FormData): SocialLinkFormValues {
     linkId: readFieldText(formData, "linkId"),
     url: readFieldText(formData, "url"),
     label: readFieldText(formData, "label"),
-    isVisible: formData.get("isVisible") === "on",
+    isVisible: readCheckbox(formData, "isVisible"),
   };
 }
 
@@ -125,11 +124,7 @@ export async function updateSiteSettingsAction(
     return { success: false, message: SAVE_FAILURE_MESSAGE, values };
   }
 
-  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
-  revalidatePath(ADMIN_SETTINGS_PATH);
-  for (const path of [...PUBLIC_PATHS, PUBLIC_ABOUT_PATH]) {
-    revalidatePath(path);
-  }
+  revalidatePortfolio([ADMIN_SETTINGS_PATH, ...PUBLIC_PATHS]);
   redirect(`${ADMIN_SETTINGS_PATH}?status=saved`);
 }
 
@@ -194,11 +189,7 @@ export async function updateSocialLinkAction(
     return { success: false, message: LINK_SAVE_FAILURE_MESSAGE, values };
   }
 
-  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
-  revalidatePath(ADMIN_SETTINGS_PATH);
-  for (const path of PUBLIC_PATHS) {
-    revalidatePath(path);
-  }
+  revalidatePortfolio([ADMIN_SETTINGS_PATH, ...PUBLIC_PATHS]);
   redirect(`${ADMIN_SETTINGS_PATH}?status=link-saved`);
 }
 
@@ -212,7 +203,7 @@ export async function createSocialLinkAction(
     platform: readFieldText(formData, "platform"),
     url: readFieldText(formData, "url"),
     label: readFieldText(formData, "label"),
-    isVisible: formData.get("isVisible") === "on",
+    isVisible: readCheckbox(formData, "isVisible"),
   };
   const parsed = socialLinkSchema.safeParse({
     ...values,
@@ -250,10 +241,6 @@ export async function createSocialLinkAction(
     return { success: false, message: LINK_SAVE_FAILURE_MESSAGE, values };
   }
 
-  updateTag(PUBLIC_PORTFOLIO_CACHE_TAG);
-  revalidatePath(ADMIN_SETTINGS_PATH);
-  for (const path of PUBLIC_PATHS) {
-    revalidatePath(path);
-  }
+  revalidatePortfolio([ADMIN_SETTINGS_PATH, ...PUBLIC_PATHS]);
   redirect(`${ADMIN_SETTINGS_PATH}?status=link-saved`);
 }
