@@ -2,6 +2,11 @@ import { z } from "zod";
 
 import { ProjectMediaType, ProjectStatus, ProjectVisibility } from "@prisma/client";
 
+import {
+  INVALID_MEDIA_URL_MESSAGE,
+  isValidMediaUrl,
+} from "@/lib/media/media-url";
+
 /**
  * Date-only values map to PostgreSQL `DATE` columns (`DateTime @db.Date`).
  * They are parsed and produced as UTC midnight so storage and display never
@@ -106,37 +111,7 @@ const mediaUrl = z
   .trim()
   .min(1, "Media URL is required")
   .max(600)
-  .refine(
-    (value) => {
-      // External URLs must parse and use http(s).
-      if (/^https?:\/\//i.test(value)) {
-        try {
-          const parsed = new URL(value);
-
-          return parsed.protocol === "http:" || parsed.protocol === "https:";
-        } catch {
-          return false;
-        }
-      }
-
-      // Application-relative paths: single leading slash, no traversal,
-      // no backslashes, and a filename with an extension at the end.
-      if (value.startsWith("/") && !value.startsWith("//")) {
-        const segments = value.split("?")[0].split("#")[0].split("/");
-
-        if (segments.some((segment) => segment === ".." || segment === ".")) {
-          return false;
-        }
-
-        const filename = segments[segments.length - 1];
-
-        return filename.length > 0 && /\.[a-z0-9]{1,10}$/i.test(filename);
-      }
-
-      return false;
-    },
-    "Use a public path that starts with / (for example /media/projects/video-platform/banner.webp) or an https:// URL",
-  );
+  .refine(isValidMediaUrl, INVALID_MEDIA_URL_MESSAGE);
 
 export const projectMediaSchema = z.object({
   url: mediaUrl,

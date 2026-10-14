@@ -6,6 +6,15 @@ import Image from "next/image";
 
 import type { ProjectMediaFormValues } from "@/app/admin/projects/actions";
 import { FieldErrors } from "@/components/admin/form-primitives";
+import {
+  mediaTypeOptions,
+  toMediaType,
+  type MediaTypeOption,
+} from "@/components/admin/project-media-options";
+import {
+  INVALID_MEDIA_URL_MESSAGE,
+  isValidMediaUrl,
+} from "@/lib/media/media-url";
 
 type ProjectMediaEditorProps = {
   media: ProjectMediaFormValues[];
@@ -13,14 +22,6 @@ type ProjectMediaEditorProps = {
   fieldErrors?: Record<string, string[]>;
   slugHint?: string;
 };
-
-type MediaTypeOption = "image" | "video" | "embed";
-
-const mediaTypeOptions: Array<{ value: MediaTypeOption; label: string }> = [
-  { value: "image", label: "Image" },
-  { value: "video", label: "Video" },
-  { value: "embed", label: "Embed" },
-];
 
 const inputBaseClassName =
   "w-full rounded-xl border bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none";
@@ -31,49 +32,6 @@ const buttonBaseClassName =
   "rounded-full border px-3 py-1.5 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-40";
 const buttonClassName = `${buttonBaseClassName} border-slate-700 text-slate-200 hover:border-slate-500 hover:text-white`;
 const dangerButtonClassName = `${buttonBaseClassName} border-red-500/40 text-red-200 hover:border-red-400 hover:text-red-100`;
-
-/**
- * Mirrors the server-side media URL rules so obviously invalid paths are
- * rejected before the form is even submitted. The server remains the
- * authority; this only avoids a round-trip for simple mistakes.
- */
-function isValidMediaUrl(value: string) {
-  const trimmed = value.trim();
-
-  if (!trimmed) {
-    return false;
-  }
-
-  if (/^https?:\/\//i.test(trimmed)) {
-    try {
-      const parsed = new URL(trimmed);
-
-      return parsed.protocol === "http:" || parsed.protocol === "https:";
-    } catch {
-      return false;
-    }
-  }
-
-  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
-    const segments = trimmed.split("?")[0].split("#")[0].split("/");
-
-    if (segments.some((segment) => segment === ".." || segment === ".")) {
-      return false;
-    }
-
-    const filename = segments[segments.length - 1];
-
-    return filename.length > 0 && /\.[a-z0-9]{1,10}$/i.test(filename);
-  }
-
-  return false;
-}
-
-function toMediaType(value: string): MediaTypeOption {
-  return mediaTypeOptions.some((option) => option.value === value)
-    ? (value as MediaTypeOption)
-    : "image";
-}
 
 export function ProjectMediaEditor({
   media,
@@ -125,9 +83,7 @@ export function ProjectMediaEditor({
     const url = newUrl.trim();
 
     if (!isValidMediaUrl(url)) {
-      setAddError([
-        "Use a public path that starts with / (for example /media/projects/video-platform/banner.webp) or an https:// URL",
-      ]);
+      setAddError([INVALID_MEDIA_URL_MESSAGE]);
       return;
     }
 
