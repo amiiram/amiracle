@@ -3,7 +3,6 @@
 import crypto from "node:crypto";
 
 import { Prisma, ProjectMediaType } from "@prisma/client";
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireAdminSession } from "@/lib/auth";
@@ -245,6 +244,33 @@ function publicProjectPath(slug: string) {
   return `${PUBLIC_PROJECT_PATH_PREFIX}/${slug}`;
 }
 
+/**
+ * Public routes that render project data and therefore need a re-render after
+ * any project mutation. `revalidatePortfolio` always clears the shared cache
+ * *tag* (so the underlying queries refetch), but statically prerendered pages
+ * keep serving their old HTML until their own path is invalidated too.
+ *
+ * - `/` lists published projects.
+ * - `/experience` and `/about` embed related-project previews.
+ * - `/sitemap.xml` enumerates project URLs.
+ *
+ * The project detail path(s) are appended per mutation by the caller.
+ */
+const PROJECT_PUBLIC_PATHS = ["/", "/experience", "/about", "/sitemap.xml"];
+
+/**
+ * Revalidates the admin list plus every public route affected by a project
+ * change. Pass the detail path(s) for the project(s) that changed so their own
+ * pages are refreshed alongside the listings.
+ */
+function revalidateProjectMutation(detailPaths: ReadonlyArray<string> = []) {
+  revalidatePortfolio([
+    ADMIN_PROJECTS_PATH,
+    ...PROJECT_PUBLIC_PATHS,
+    ...detailPaths,
+  ]);
+}
+
 async function validateTechnologySelection(technologyIds: string[]) {
   if (technologyIds.length === 0) {
     return;
@@ -386,10 +412,7 @@ export async function createProjectAction(
     };
   }
 
-  revalidatePortfolio([
-    ADMIN_PROJECTS_PATH,
-    publicProjectPath(parsed.data.slug),
-  ]);
+  revalidateProjectMutation([publicProjectPath(parsed.data.slug)]);
   redirect(ADMIN_PROJECTS_PATH);
 }
 
@@ -489,13 +512,15 @@ export async function updateProjectAction(
       await syncProjectMedia(tx, projectId, mediaRows);
     });
 
-    const paths = [publicProjectPath(project.slug)];
+    // Refresh both the old and new detail URLs when the slug changed, alongside
+    // the shared admin/public listing paths.
+    const detailPaths = [publicProjectPath(project.slug)];
 
     if (project.slug !== parsed.data.slug) {
-      paths.push(publicProjectPath(parsed.data.slug));
+      detailPaths.push(publicProjectPath(parsed.data.slug));
     }
 
-    revalidatePortfolio(paths);
+    revalidateProjectMutation(detailPaths);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === "P2002") {
@@ -536,7 +561,6 @@ export async function updateProjectAction(
     };
   }
 
-  revalidatePath(ADMIN_PROJECTS_PATH);
   redirect(ADMIN_PROJECTS_PATH);
 }
 
@@ -562,10 +586,7 @@ export async function deleteProjectAction(formData: FormData) {
     where: { id: projectId },
   });
 
-  revalidatePortfolio([
-    ADMIN_PROJECTS_PATH,
-    publicProjectPath(project.slug),
-  ]);
+  revalidateProjectMutation([publicProjectPath(project.slug)]);
 }
 
 export async function toggleProjectPublishAction(formData: FormData) {
@@ -598,5 +619,7 @@ export async function toggleProjectPublishAction(formData: FormData) {
     },
   });
 
-  revalidatePortfolio([ADMIN_PROJECTS_PATH]);
+  // Toggling publish state changes whether the project is publicly visible, so
+  // the detail page and every listing must refresh, not just the admin list.
+  revalidateProjectMutation([publicProjectPath(project.slug)]);
 }

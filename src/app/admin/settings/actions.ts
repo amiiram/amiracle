@@ -32,6 +32,8 @@ const PUBLIC_PATHS = ["/", "/about", "/contact"];
 const SAVE_FAILURE_MESSAGE = "Unable to save the settings. Please try again.";
 const LINK_SAVE_FAILURE_MESSAGE =
   "Unable to save this social link. Please try again.";
+const LINK_DELETE_FAILURE_MESSAGE =
+  "Unable to delete this social link. Please try again.";
 const MISSING_LINK_MESSAGE =
   "This social link no longer exists. Reload the page and try again.";
 
@@ -243,4 +245,36 @@ export async function createSocialLinkAction(
 
   revalidatePortfolio([ADMIN_SETTINGS_PATH, ...PUBLIC_PATHS]);
   redirect(`${ADMIN_SETTINGS_PATH}?status=link-saved`);
+}
+
+
+/**
+ * Deletes a social link by id. A missing row (already deleted elsewhere, or a
+ * forged id) surfaces the same "no longer exists" notice as the update flow
+ * rather than a generic failure.
+ */
+export async function deleteSocialLinkAction(formData: FormData) {
+  await requireAdminSession();
+
+  const linkId = readFieldText(formData, "linkId");
+
+  if (!linkId.trim()) {
+    redirect(`${ADMIN_SETTINGS_PATH}?status=link-missing`);
+  }
+
+  try {
+    await prisma.socialLink.delete({ where: { id: linkId } });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2025"
+    ) {
+      redirect(`${ADMIN_SETTINGS_PATH}?status=link-missing`);
+    }
+
+    throw new Error(LINK_DELETE_FAILURE_MESSAGE);
+  }
+
+  revalidatePortfolio([ADMIN_SETTINGS_PATH, ...PUBLIC_PATHS]);
+  redirect(`${ADMIN_SETTINGS_PATH}?status=link-deleted`);
 }

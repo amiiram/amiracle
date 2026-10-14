@@ -36,8 +36,7 @@ const optionalDateOnly = dateOnlyString
 
 /** ISO-8601 timestamps, accepting an empty string for "not set". */
 const optionalTimestamp = z
-  .string()
-  .datetime()
+  .iso.datetime()
   .optional()
   .or(z.literal(""))
   .transform((value) => (value ? new Date(value) : null));
@@ -180,7 +179,7 @@ export const certificationSchema = z
     credentialId: z.string().trim().max(160).optional(),
     obtainedAt: optionalDateOnly,
     expiresAt: optionalDateOnly,
-    url: z.string().url().optional().or(z.literal("")),
+    url: z.url().optional().or(z.literal("")),
   })
   .superRefine((certification, ctx) => {
     if (

@@ -15,7 +15,7 @@ export const siteSettingsSchema = z.object({
   siteName: z.string().trim().min(1).max(120).optional(),
   tagline: z.string().trim().max(180).optional(),
   description: z.string().trim().max(500).optional(),
-  email: z.string().email().optional().or(z.literal("")),
+  email: z.email().optional().or(z.literal("")),
   defaultLocale: z.enum(Locale).default(Locale.en),
   themeMode: z.enum(ThemeMode).default(ThemeMode.system),
   // Long-form Markdown narrative rendered on the about page.
@@ -24,7 +24,7 @@ export const siteSettingsSchema = z.object({
 
 export const socialLinkSchema = z.object({
   platform: z.string().trim().min(1).max(60),
-  url: z.string().url(),
+  url: z.url(),
   label: z.string().trim().max(80).optional(),
   isVisible: z.boolean().default(true),
 });

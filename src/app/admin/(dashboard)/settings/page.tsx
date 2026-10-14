@@ -2,10 +2,12 @@ import { Locale, ThemeMode } from "@prisma/client";
 
 import {
   createSocialLinkAction,
+  deleteSocialLinkAction,
   updateSiteSettingsAction,
   updateSocialLinkAction,
 } from "@/app/admin/settings/actions";
 import { CreateSocialLinkForm } from "@/components/admin/create-social-link-form";
+import { DeleteSocialLinkButton } from "@/components/admin/delete-social-link-button";
 import { SiteSettingsForm } from "@/components/admin/site-settings-form";
 import { SocialLinkForm } from "@/components/admin/social-link-form";
 import { requireAdminSession } from "@/lib/auth";
@@ -15,6 +17,8 @@ import { SITE_SETTINGS_ID } from "@/lib/validations/site";
 const statusMessages: Record<string, string> = {
   saved: "Settings saved.",
   "link-saved": "Social link saved.",
+  "link-deleted": "Social link deleted.",
+  "link-missing": "That social link no longer exists.",
 };
 
 const localeLabels: Record<Locale, string> = {
@@ -114,17 +118,25 @@ export default async function AdminSettingsPage({
           <CreateSocialLinkForm action={createSocialLinkAction} />
 
           {socialLinks.map((link) => (
-            <SocialLinkForm
-              key={link.id}
-              action={updateSocialLinkAction}
-              link={{
-                id: link.id,
-                platform: link.platform,
-                url: link.url,
-                label: link.label ?? "",
-                isVisible: link.isVisible,
-              }}
-            />
+            <div key={link.id} className="space-y-3">
+              <SocialLinkForm
+                action={updateSocialLinkAction}
+                link={{
+                  id: link.id,
+                  platform: link.platform,
+                  url: link.url,
+                  label: link.label ?? "",
+                  isVisible: link.isVisible,
+                }}
+              />
+              <div className="flex justify-end">
+                <DeleteSocialLinkButton
+                  linkId={link.id}
+                  platform={link.platform}
+                  action={deleteSocialLinkAction}
+                />
+              </div>
+            </div>
           ))}
 
           {socialLinks.length === 0 ? (

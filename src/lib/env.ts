@@ -6,16 +6,36 @@ const envSchema = z.object({
     .default("development"),
   DATABASE_URL: z.string().min(1).optional(),
   NEXTAUTH_SECRET: z.string().min(1).optional(),
-  NEXTAUTH_URL: z.string().url().optional(),
-  NEXT_PUBLIC_SITE_URL: z.string().url().optional(),
+  NEXTAUTH_URL: z.url().optional(),
+  NEXT_PUBLIC_SITE_URL: z.url().optional(),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
 
-export const env = parsedEnv.success
+if (!parsedEnv.success) {
+  // Fail fast in production so a misconfigured deploy never serves with
+  // silently missing values. In development the raw values are exposed so
+  // optional keys can stay unset locally.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      `Invalid environment variables: ${parsedEnv.error.issues
+        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+        .join("; ")}`,
+    );
+  }
+
+  console.warn(
+    "Environment validation warnings:",
+    parsedEnv.error.issues
+      .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+      .join("; "),
+  );
+}
+
+export const env: z.infer<typeof envSchema> = parsedEnv.success
   ? parsedEnv.data
   : {
-      NODE_ENV: process.env.NODE_ENV ?? "development",
+      NODE_ENV: (process.env.NODE_ENV as "development" | "test" | "production" | undefined) ?? "development",
       DATABASE_URL: process.env.DATABASE_URL,
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
       NEXTAUTH_URL: process.env.NEXTAUTH_URL,
@@ -49,10 +69,4 @@ export function getPublicSiteUrl() {
   }
 
   return url.origin;
-}
-
-export function getDatabaseUrl() {
-  return (
-    env.DATABASE_URL ?? "postgresql://postgres:postgres@localhost:5432/amiracle"
-  );
 }
