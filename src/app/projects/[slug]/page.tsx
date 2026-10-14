@@ -6,14 +6,19 @@ import { notFound } from "next/navigation";
 import { SectionHeading } from "@/components/section-heading";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { getPublicSiteUrl } from "@/lib/env";
-import { getProjectBySlug } from "@/lib/portfolio-data";
+import { getProjectBySlug, getPublicProjects } from "@/lib/portfolio-data";
 import { renderMarkdown } from "@/lib/markdown";
 import type { ProjectMediaItem } from "@/lib/portfolio-data";
+import { canonicalUrl, jsonLdScript, pageMetadata } from "@/lib/seo";
 
 type ProjectPageProps = {
   params: Promise<{ slug: string }>;
 };
+
+export async function generateStaticParams() {
+  const projects = await getPublicProjects();
+  return projects.map((project) => ({ slug: project.slug }));
+}
 
 export async function generateMetadata({
   params,
@@ -22,30 +27,21 @@ export async function generateMetadata({
   const project = await getProjectBySlug(slug);
 
   if (!project) {
-    return {};
+    return {
+      title: "Project not found",
+      robots: { index: false, follow: false },
+    };
   }
 
   const description = project.excerpt || `${project.title} project case study.`;
-  const siteUrl = getPublicSiteUrl();
-  const canonical = siteUrl
-    ? new URL(`/projects/${encodeURIComponent(slug)}`, siteUrl).toString()
-    : undefined;
 
   return {
-    title: project.title,
-    description,
-    ...(canonical ? { alternates: { canonical } } : {}),
-    openGraph: {
+    ...pageMetadata({
+      path: `/projects/${encodeURIComponent(slug)}`,
       title: project.title,
       description,
-      type: "article",
-      ...(canonical ? { url: canonical } : {}),
-    },
-    twitter: {
-      card: "summary",
-      title: project.title,
-      description,
-    },
+      ogType: "article",
+    }),
   };
 }
 
@@ -56,10 +52,10 @@ export async function generateMetadata({
  */
 function ProjectMediaContent({
   media,
-  preload = false,
+  eager = false,
 }: {
   media: ProjectMediaItem;
-  preload?: boolean;
+  eager?: boolean;
 }) {
   if (media.type === "image" && media.url) {
     return (
@@ -67,7 +63,7 @@ function ProjectMediaContent({
         src={media.url}
         alt={media.alt || "Project media"}
         fill
-        preload={preload}
+        priority={eager}
         sizes="(max-width: 980px) 100vw, 1120px"
         className="project-media-visual"
       />
@@ -118,6 +114,26 @@ export default async function ProjectDetailPage({
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScript({
+            "@context": "https://schema.org",
+            "@type": "Article",
+            headline: project.title,
+            description: project.excerpt || undefined,
+            url: canonicalUrl(`/projects/${encodeURIComponent(project.slug)}`),
+            image: project.media
+              .filter((item) => item.type === "image")
+              .slice(0, 3)
+              .map((item) => canonicalUrl(item.url) ?? item.url),
+            datePublished: project.publishedAt
+              ? project.publishedAt.toISOString()
+              : undefined,
+            dateModified: project.updatedAt.toISOString(),
+          }),
+        }}
+      />
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
@@ -135,7 +151,7 @@ export default async function ProjectDetailPage({
 
           {banner ? (
             <div className="project-feature-visual">
-              <ProjectMediaContent media={banner} preload />
+              <ProjectMediaContent media={banner} eager />
             </div>
           ) : null}
         </section>

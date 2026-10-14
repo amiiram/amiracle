@@ -13,18 +13,22 @@ export function SocialLinks({
 
   return (
     <ul className={className} aria-label="Social profiles">
-      {links.map((link) => (
-        <li key={link.id}>
-          <a
-            href={link.href}
-            target={link.href.startsWith("mailto:") ? undefined : "_blank"}
-            rel={link.href.startsWith("mailto:") ? undefined : "noreferrer"}
-            className="social-link"
-          >
-            {link.label}
-          </a>
-        </li>
-      ))}
+      {links.map((link) => {
+        const isMailto = link.href.toLowerCase().startsWith("mailto:");
+
+        return (
+          <li key={link.id}>
+            <a
+              href={link.href}
+              target={isMailto ? undefined : "_blank"}
+              rel={isMailto ? undefined : "noreferrer noopener me"}
+              className="social-link"
+            >
+              {link.label}
+            </a>
+          </li>
+        );
+      })}
     </ul>
   );
 }

@@ -5,25 +5,15 @@ import { SectionHeading } from "@/components/section-heading";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { SocialLinks } from "@/components/social-links";
-import { getPublicSiteUrl } from "@/lib/env";
 import { getPublicSiteData } from "@/lib/portfolio-data";
+import { canonicalUrl, jsonLdScript, pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const siteUrl = getPublicSiteUrl();
-  const canonical = siteUrl
-    ? new URL("/contact", siteUrl).toString()
-    : undefined;
-
-  return {
+  return pageMetadata({
+    path: "/contact",
     title: "Contact",
-    description: "Contact information for the Amiracle portfolio.",
-    ...(canonical
-      ? {
-          alternates: { canonical },
-          openGraph: { url: canonical },
-        }
-      : {}),
-  };
+    description: "Contact Amiracle about opportunities, projects, or questions.",
+  });
 }
 
 export default async function ContactPage() {
@@ -34,6 +24,17 @@ export default async function ContactPage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScript({
+            "@context": "https://schema.org",
+            "@type": "ContactPage",
+            url: canonicalUrl("/contact"),
+            name: `Contact ${site.name}`,
+          }),
+        }}
+      />
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>

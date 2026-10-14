@@ -5,28 +5,20 @@ import { SectionHeading } from "@/components/section-heading";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { renderMarkdown } from "@/lib/markdown";
-import { getPublicSiteUrl } from "@/lib/env";
 import {
   getPublicEducation,
   getPublicExperiences,
   getPublicSiteData,
   getPublicTechnologies,
 } from "@/lib/portfolio-data";
+import { canonicalUrl, jsonLdScript, pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const siteUrl = getPublicSiteUrl();
-  const canonical = siteUrl ? new URL("/about", siteUrl).toString() : undefined;
-
-  return {
+  return pageMetadata({
+    path: "/about",
     title: "About",
-    description: "About information for the Amiracle portfolio.",
-    ...(canonical
-      ? {
-          alternates: { canonical },
-          openGraph: { url: canonical },
-        }
-      : {}),
-  };
+    description: "Background, experience, education, and skills.",
+  });
 }
 
 export default async function AboutPage() {
@@ -39,6 +31,17 @@ export default async function AboutPage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScript({
+            "@context": "https://schema.org",
+            "@type": "AboutPage",
+            url: canonicalUrl("/about"),
+            name: `About ${site.name}`,
+          }),
+        }}
+      />
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>

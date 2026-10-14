@@ -3,6 +3,11 @@ import Link from "next/link";
 import { TerminalWindow } from "@/components/not-found-terminal";
 import { SiteHeader } from "@/components/site-header";
 
+export const metadata = {
+  title: "Page not found",
+  robots: { index: false, follow: false },
+};
+
 export default function NotFound() {
   return (
     <div className="flex min-h-screen w-full flex-col">

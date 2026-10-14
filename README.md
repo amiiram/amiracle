@@ -20,8 +20,9 @@ and experience.
      use a unique password of at least 16 characters.
    - `ADMIN_SESSION_SECRET`: a cryptographically random secret of at least 32
      characters. `NEXTAUTH_SECRET` is accepted as a fallback.
-   - `NEXT_PUBLIC_SITE_URL`: optional canonical site URL. Use HTTPS for a
-     production host; localhost is allowed for local development/builds.
+   - `NEXT_PUBLIC_SITE_URL`: canonical site URL used by canonical metadata,
+     the sitemap, and social previews. Set it to the final HTTPS origin in
+     production; localhost is allowed for local development/builds.
 3. Generate the Prisma client with `npm run db:generate`.
 4. Apply the committed migrations and create the initial admin with
    `npm run db:setup`.

@@ -5,36 +5,51 @@ import type { Metadata } from "next";
 import { SectionHeading } from "@/components/section-heading";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { getPublicSiteUrl } from "@/lib/env";
 import {
   getPublicProjects,
   getPublicSiteData,
   getPublicTechnologies,
 } from "@/lib/portfolio-data";
 import type { ProjectMediaItem } from "@/lib/portfolio-data";
+import { canonicalUrl, jsonLdScript, pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const siteUrl = getPublicSiteUrl();
-  const canonical = siteUrl ? new URL("/", siteUrl).toString() : undefined;
+  const site = await getPublicSiteData();
+  const description =
+    site.description || "A portfolio of projects, experience, and skills.";
+  const base = pageMetadata({
+    path: "/",
+    title: `${site.title} | ${site.name}`,
+    description,
+  });
 
   return {
-    ...(canonical
-      ? {
-          alternates: { canonical },
-          openGraph: { url: canonical },
-        }
-      : {}),
+    ...base,
+    openGraph: {
+      ...base.openGraph,
+      url: canonicalUrl("/"),
+      title: site.title,
+    },
   };
 }
 
-function ProjectCardBanner({ media }: { media: ProjectMediaItem }) {
+function ProjectCardBanner({
+  media,
+  title,
+  eager = false,
+}: {
+  media: ProjectMediaItem;
+  title: string;
+  eager?: boolean;
+}) {
   if (media.type === "image" && media.url) {
     return (
       <Image
         src={media.url}
-        alt=""
+        alt={media.alt || `${title} preview`}
         fill
         sizes="(max-width: 980px) 100vw, 520px"
+        priority={eager}
         className="project-media-visual"
       />
     );
@@ -47,7 +62,7 @@ function ProjectCardBanner({ media }: { media: ProjectMediaItem }) {
         muted
         playsInline
         preload="metadata"
-        aria-hidden="true"
+        aria-label={media.alt || `${title} preview video`}
         className="project-media-visual"
       />
     );
@@ -63,8 +78,29 @@ export default async function HomePage() {
     getPublicTechnologies(),
   ]);
 
+  const homeJsonLd = jsonLdScript({
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: `${site.name} — ${site.title}`,
+    description: site.description || undefined,
+    url: canonicalUrl("/"),
+    mainEntity: {
+      "@type": "ItemList",
+      itemListElement: projects.slice(0, 10).map((project, index) => ({
+        "@type": "ListItem",
+        position: index + 1,
+        url: canonicalUrl(`/projects/${encodeURIComponent(project.slug)}`),
+        name: project.title,
+      })),
+    },
+  });
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: homeJsonLd }}
+      />
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
@@ -106,7 +142,7 @@ export default async function HomePage() {
                   >
                     {banner ? (
                       <div className="project-visual">
-                        <ProjectCardBanner media={banner} />
+                        <ProjectCardBanner media={banner} title={project.title} eager={index === 0} />
                       </div>
                     ) : null}
 

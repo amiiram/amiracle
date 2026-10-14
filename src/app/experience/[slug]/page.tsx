@@ -5,13 +5,18 @@ import { notFound } from "next/navigation";
 import { SectionHeading } from "@/components/section-heading";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { getPublicSiteUrl } from "@/lib/env";
-import { getPublicExperienceBySlug } from "@/lib/portfolio-data";
+import { getPublicExperienceBySlug, getPublicExperiences } from "@/lib/portfolio-data";
 import { renderMarkdown } from "@/lib/markdown";
+import { canonicalUrl, jsonLdScript, pageMetadata } from "@/lib/seo";
 
 type ExperiencePageProps = {
   params: Promise<{ slug: string }>;
 };
+
+export async function generateStaticParams() {
+  const experiences = await getPublicExperiences();
+  return experiences.map((experience) => ({ slug: experience.slug }));
+}
 
 function experienceDescription(summary: string, role: string, company: string) {
   return summary || `${role} at ${company}. Professional experience.`;
@@ -36,29 +41,14 @@ export async function generateMetadata({
     experience.role,
     experience.company,
   );
-  const siteUrl = getPublicSiteUrl();
-  const canonical = siteUrl
-    ? new URL(
-        `/experience/${encodeURIComponent(experience.slug)}`,
-        siteUrl,
-      ).toString()
-    : undefined;
 
   return {
-    title,
-    description,
-    ...(canonical ? { alternates: { canonical } } : {}),
-    openGraph: {
+    ...pageMetadata({
+      path: `/experience/${encodeURIComponent(experience.slug)}`,
       title,
       description,
-      type: "article",
-      ...(canonical ? { url: canonical } : {}),
-    },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-    },
+      ogType: "article",
+    }),
   };
 }
 
@@ -74,6 +64,20 @@ export default async function ExperienceDetailPage({
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScript({
+            "@context": "https://schema.org",
+            "@type": "Article",
+            headline: `${experience.role} at ${experience.company}`,
+            description: experience.summary || undefined,
+            url: canonicalUrl(`/experience/${encodeURIComponent(experience.slug)}`),
+            dateModified: experience.updatedAt.toISOString(),
+            author: { "@type": "Person", name: experience.company },
+          }),
+        }}
+      />
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>

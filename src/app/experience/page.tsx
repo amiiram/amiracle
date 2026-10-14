@@ -4,25 +4,15 @@ import Link from "next/link";
 import { SectionHeading } from "@/components/section-heading";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { getPublicSiteUrl } from "@/lib/env";
 import { getPublicExperiences } from "@/lib/portfolio-data";
+import { canonicalUrl, jsonLdScript, pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const siteUrl = getPublicSiteUrl();
-  const canonical = siteUrl
-    ? new URL("/experience", siteUrl).toString()
-    : undefined;
-
-  return {
+  return pageMetadata({
+    path: "/experience",
     title: "Experience",
     description: "Professional experience and roles.",
-    ...(canonical
-      ? {
-          alternates: { canonical },
-          openGraph: { url: canonical },
-        }
-      : {}),
-  };
+  });
 }
 
 export default async function ExperiencePage() {
@@ -30,6 +20,26 @@ export default async function ExperiencePage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdScript({
+            "@context": "https://schema.org",
+            "@type": "CollectionPage",
+            url: canonicalUrl("/experience"),
+            name: "Professional experience",
+            mainEntity: {
+              "@type": "ItemList",
+              itemListElement: experiences.slice(0, 20).map((experience, index) => ({
+                "@type": "ListItem",
+                position: index + 1,
+                url: canonicalUrl(`/experience/${encodeURIComponent(experience.slug)}`),
+                name: `${experience.role} at ${experience.company}`,
+              })),
+            },
+          }),
+        }}
+      />
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
