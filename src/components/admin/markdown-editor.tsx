@@ -39,6 +39,11 @@ import {
   controlClassName,
   invalidControlClassName,
 } from "@/components/admin/form-primitives";
+import {
+  toAltTextFromFilename,
+  toMarkdownSnippet,
+} from "@/components/admin/media-snippets";
+import { useMediaIndex } from "@/components/admin/use-media-index";
 import type { PublicMediaItem } from "@/lib/media/public-media";
 import { renderMarkdown } from "@/lib/markdown";
 
@@ -96,102 +101,6 @@ const insertMediaButtonClassName =
 /** Shell used for the Write/Preview preview panel (public `.markdown-body`). */
 const previewPanelClassName = "markdown-body min-h-40 px-1 py-2 text-slate-100";
 
-/** `dashboard.webp` -> `Dashboard`; used when no alt text is available. */
-function toAltTextFromFilename(filename: string) {
-  const words = filename
-    .replace(/\.[a-z0-9]+$/i, "")
-    .replace(/[-_]+/g, " ")
-    .trim();
-
-  if (!words) {
-    return "Media";
-  }
-
-  return words.charAt(0).toUpperCase() + words.slice(1);
-}
-
-/**
- * Markdown has no video syntax, so a video is written as an image whose URL
- * ends in a video extension; `src/lib/markdown.tsx` renders those as a
- * controlled `<video controls>`. Images and videos therefore both use the
- * ordinary, portable `![alt](url)` form.
- */
-function toMarkdownSnippet(item: PublicMediaItem, altText: string) {
-  const safeAlt = altText.replace(/[[\]]+/g, "").trim() || "Media";
-
-  return `![${safeAlt}](${item.url})`;
-}
-
-/** Client-side mirror of the server's URL rules; anything else is ignored. */
-function isSafeMediaItem(value: unknown): value is PublicMediaItem {
-  if (typeof value !== "object" || value === null) {
-    return false;
-  }
-
-  const candidate = value as Partial<PublicMediaItem>;
-
-  return (
-    typeof candidate.url === "string" &&
-    typeof candidate.filename === "string" &&
-    typeof candidate.project === "string" &&
-    (candidate.type === "image" || candidate.type === "video") &&
-    candidate.url.startsWith("/media/") &&
-    !candidate.url.includes("..")
-  );
-}
-
-// The index is fetched once per browser session, and only when the picker is
-// opened, so nothing scans the filesystem while the author types.
-let cachedMediaIndex: PublicMediaItem[] | null = null;
-let inflightMediaIndex: Promise<PublicMediaItem[]> | null = null;
-
-function resetMediaIndexCache() {
-  cachedMediaIndex = null;
-  inflightMediaIndex = null;
-}
-
-async function loadPublicMedia(): Promise<PublicMediaItem[]> {
-  if (cachedMediaIndex) {
-    return cachedMediaIndex;
-  }
-
-  if (!inflightMediaIndex) {
-    inflightMediaIndex = (async () => {
-      const response = await fetch("/api/admin/media", {
-        headers: { accept: "application/json" },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Media index request failed (${response.status})`);
-      }
-
-      const payload: unknown = await response.json();
-      const files =
-        typeof payload === "object" && payload !== null && "files" in payload
-          ? (payload as { files?: unknown }).files
-          : null;
-
-      if (!Array.isArray(files)) {
-        return [];
-      }
-
-      return files.filter(isSafeMediaItem);
-    })();
-  }
-
-  try {
-    const files = await inflightMediaIndex;
-
-    cachedMediaIndex = files;
-
-    return files;
-  } catch (error) {
-    // Let the next attempt run instead of caching the failure.
-    inflightMediaIndex = null;
-    throw error;
-  }
-}
-
 /**
  * The "Insert Media" dialog. It only ever shows files that already exist under
  * `public/media/`, puts the current project's files first, and cancels without
@@ -208,37 +117,12 @@ function MediaPickerDialog({
   onSelect: (item: PublicMediaItem, altText: string, caption: string) => void;
   onClose: () => void;
 }) {
-  const [files, setFiles] = useState<PublicMediaItem[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { files, error, reload } = useMediaIndex();
   const [query, setQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<PublicMediaItem | null>(null);
   const [altText, setAltText] = useState("");
   const [caption, setCaption] = useState("");
   const titleId = useId();
-
-  const load = useCallback(() => {
-    let cancelled = false;
-
-    loadPublicMedia()
-      .then((items) => {
-        if (!cancelled) {
-          setError(null);
-          setFiles(items);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setFiles(null);
-          setError("Could not load media. Please try again.");
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => load(), [load]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -370,12 +254,7 @@ function MediaPickerDialog({
               <button
                 type="button"
                 className={toolbarButtonIdleClassName}
-                onClick={() => {
-                  resetMediaIndexCache();
-                  setError(null);
-                  setFiles(null);
-                  load();
-                }}
+                onClick={reload}
               >
                 Retry
               </button>
