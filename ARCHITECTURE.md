@@ -10,28 +10,29 @@ The current foundation is designed to support a future platform with:
 - a custom admin application for content management
 - database-backed persistence with Prisma + PostgreSQL
 - server-side validation for CMS and mutation inputs
-- a future Auth.js admin boundary (no authentication models exist yet)
-- deployment on Vercel with environment-based configuration
+- an HMAC-signed session-cookie admin boundary (`AdminUser` model + login throttle)
+- deployment on a Node host with Neon PostgreSQL and environment-based configuration
 
 ## 2. Folder responsibilities
 
 - `src/app`: route boundaries and application entry points.
-  - `(public)`: public-facing pages and shared public layout.
-  - `admin`: future authenticated CMS area.
-  - `api`: reserved for genuine HTTP endpoints only when necessary.
+  - public pages (`/`, `/about`, `/contact`, `/projects/[slug]`, `/experience`, `/experience/[slug]`) with shared root layout, plus `sitemap.ts`, `robots.ts`, and generated OG images.
+  - `admin`: authenticated CMS area — `/admin/login` plus the `(dashboard)` group (`/admin`, `/admin/projects`, `/admin/experience`, `/admin/technologies`, `/admin/settings`).
+  - `api`: reserved for genuine HTTP endpoints only when necessary (currently `api/admin/media` for admin media uploads).
 - `src/components`: reusable UI building blocks.
-  - `ui`: low-level, reusable primitives.
-  - `layout`: page shell and shared layout primitives.
-  - `public`, `admin`, `projects`: feature-specific components when they appear.
+  - `admin`: CMS forms and primitives (`form-primitives`, `site-settings-form`, `social-link-form`, `delete-social-link-button`, `create-social-link-form`).
+  - root: public chrome (`site-header`, `site-navigation`, `site-footer`, `theme-toggle`, `portfolio-motion`, `social-links`, `section-heading`, `not-found-terminal`).
 - `src/lib`: application infrastructure.
   - `db`: Prisma access and database configuration.
-  - `auth`: authentication boundary and permission helpers.
-  - `utils`: simple shared utilities, such as class merging.
-  - `validations`: domain-specific Zod validation schemas.
+  - `auth`: session-cookie authentication (`HMAC-SHA256` tokens in `index.ts`), `PBKDF2` password helpers (`password.mjs`), and the in-memory login throttle (`login-throttle.ts`).
+  - `admin`: shared server-action helpers (`revalidate.ts` cache invalidation).
+  - `media`: media URL validation (`media-url.ts`) and public media listing (`public-media.ts`).
+  - `validations`: domain-specific Zod validation schemas (`site.ts`, `content.ts`, `form-state.ts`).
   - `env.ts`: environment parsing and safe access layers.
-- `src/types`: shared type contracts.
+  - `portfolio-data.ts` + `portfolio-cache.ts`: cached public reads behind the shared `public-portfolio-data` tag.
+  - `seo.ts`: per-page metadata builder, OG locale mapping, JSON-LD helpers.
+  - `project-visibility.mjs`, `markdown.tsx`: visibility checks and Markdown rendering.
 - `src/hooks`: client-side hooks only when needed.
-- `src/animations`: GSAP-related code, isolated from business logic.
 
 This structure keeps responsibilities explicit without over-engineering the project.
 
@@ -102,27 +103,36 @@ Database credentials are not exposed to the client. The application reads values
 
 ## 5. Authentication boundary
 
-`src/lib/auth` is a placeholder for the future admin boundary. Authentication is not implemented yet, and the schema contains no admin user, session, role, or permission models. When authentication is added (for example with Auth.js or a similar server-based approach), it will bring its own models and migration.
+`src/lib/auth` implements the admin boundary with HMAC-SHA256 signed session
+cookies (`amiracle_admin_session`, 12-hour TTL, `httpOnly` + `sameSite: lax`,
+`secure` in production). Passwords are `PBKDF2-SHA256` hashes (210k
+iterations) verified in constant time, with a dummy-hash burn on unknown
+emails so response timing does not reveal whether an account exists. Login
+attempts are throttled in memory per email+IP (5 failures per 15-minute
+window); the throttle is per-instance and documents an external store
+(Upstash Redis or similar) as the upgrade path for multi-instance deploys.
 
-The system is intentionally kept simple:
+The single required credential is the seeded `AdminUser` row (created by
+`prisma/seed.mjs` only when its email is absent; it never overwrites or
+resets). Guards live server-side:
 
-- one owner/admin is expected initially
-- authorization checks should happen on the server
-- admin routes should be protected by server-side guards and server actions
-- no broad multi-role framework is added prematurely
+- `requireAdminSession()` runs in the `(dashboard)` layout and at the top of
+  every admin server action.
+- `getCurrentAdminUser()` is `cache()`-memoized per render pass so the layout
+  plus each page/action share one admin-row query.
+- already-authenticated visitors to `/admin/login` are redirected to `/admin`.
 
 This keeps the security model straightforward and easy to extend if additional admin accounts are added later.
 
 ## 6. CMS boundary
 
-The CMS is intentionally kept as a future part of the same Next.js application rather than a separate service or vendor product. This avoids unnecessary infrastructure while keeping a clean long-term path for CRUD features.
-
-The admin area is separated under `src/app/admin` and is designed to eventually host:
+The CMS lives in the same Next.js application under `src/app/admin` (no
+separate service). It hosts:
 
 - authenticated dashboard pages
-- portfolio content management
-- project CRUD flows
-- settings and social links
+- portfolio content management (projects, experience, technologies)
+- project CRUD flows (including media ordering and publish toggles)
+- site settings and social links (create/update/delete)
 
 The custom CMS should remain a direct extension of the same app, not a disconnected system.
 
