@@ -7,6 +7,12 @@ import type {
 } from "@/app/admin/projects/actions";
 import { MarkdownField } from "@/components/admin/markdown-editor";
 import { ProjectMediaEditor } from "@/components/admin/project-media-editor";
+import {
+  FieldErrors,
+  checkboxInputClassName,
+  controlClassName,
+  invalidControlClassName,
+} from "@/components/admin/form-primitives";
 import { useActionState, useMemo, useState } from "react";
 
 type TechnologyOption = {
@@ -57,20 +63,10 @@ const emptyValues: ProjectFormValues = {
   media: [],
 };
 
-const controlBaseClassName =
-  "w-full rounded-xl border bg-slate-950 px-3 py-2.5 text-slate-100 placeholder:text-slate-500 focus:outline-none";
-const controlClassName = `${controlBaseClassName} border-slate-700 focus:border-slate-400`;
-const invalidControlClassName = `${controlBaseClassName} border-red-500/70 focus:border-red-400`;
-
 const checkboxBaseClassName =
   "flex items-center gap-3 rounded-xl border bg-slate-950";
 const checkboxClassName = `${checkboxBaseClassName} border-slate-700`;
 const invalidCheckboxClassName = `${checkboxBaseClassName} border-red-500/70`;
-
-const checkboxInputClassName =
-  "h-4 w-4 rounded border-slate-600 bg-slate-900 text-white";
-
-const fieldErrorClassName = "text-sm text-red-300";
 
 /** The values the form starts from: the edited project, or nothing at all. */
 function toInitialValues(project?: ProjectDefaults): ProjectFormValues {
@@ -91,22 +87,6 @@ function toInitialValues(project?: ProjectDefaults): ProjectFormValues {
     technologyIds: project.technologies.map((technology) => technology.id),
     media: project.media ?? [],
   };
-}
-
-function FieldErrors({ id, messages }: { id: string; messages?: string[] }) {
-  if (!messages || messages.length === 0) {
-    return null;
-  }
-
-  return (
-    <div id={id} className="space-y-1">
-      {messages.map((message, index) => (
-        <p key={`${id}-${index}`} className={fieldErrorClassName}>
-          {message}
-        </p>
-      ))}
-    </div>
-  );
 }
 
 export function ProjectForm({
