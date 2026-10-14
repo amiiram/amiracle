@@ -5,6 +5,28 @@ import { getPublicSiteUrl } from "@/lib/env";
 /** Canonical site locale used by Open Graph metadata. */
 export const SITE_LOCALE = "en_US";
 
+/** Shared fallback when no site description is configured. */
+export const DEFAULT_SITE_DESCRIPTION =
+  "A portfolio of projects, experience, and skills.";
+
+/** Maps a stored `Locale` enum value (`en`, `fr`, …) to an OG locale tag. */
+export function ogLocaleFor(locale: string): string {
+  const normalized = locale.trim().toLowerCase();
+
+  switch (normalized) {
+    case "fr":
+      return "fr_FR";
+    case "de":
+      return "de_DE";
+    case "es":
+      return "es_ES";
+    case "en":
+      return SITE_LOCALE;
+    default:
+      return SITE_LOCALE;
+  }
+}
+
 /** Shared Open Graph image route (1200x630 PNG generated per route). */
 export const DEFAULT_OG_IMAGE = {
   url: "/opengraph-image",
@@ -54,13 +76,21 @@ type PageSeoInput = {
   title: string;
   description: string;
   ogType?: "website" | "article";
+  /** Stored `Locale` enum value; falls back to `SITE_LOCALE` when omitted. */
+  locale?: string;
 };
 
 /**
  * Shared per-page SEO builder: canonical + Open Graph + Twitter.
  * Keeps every public page consistent without repeating metadata boilerplate.
  */
-export function pageMetadata({ path, title, description, ogType = "website" }: PageSeoInput): Metadata {
+export function pageMetadata({
+  path,
+  title,
+  description,
+  ogType = "website",
+  locale,
+}: PageSeoInput): Metadata {
   const canonical = canonicalUrl(path);
   const siteUrl = getPublicSiteUrl();
 
@@ -72,7 +102,7 @@ export function pageMetadata({ path, title, description, ogType = "website" }: P
       title,
       description,
       type: ogType,
-      locale: SITE_LOCALE,
+      locale: locale ? ogLocaleFor(locale) : SITE_LOCALE,
       ...(canonical ? { url: canonical } : {}),
       images: [
         {

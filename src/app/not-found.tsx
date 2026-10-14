@@ -11,9 +11,12 @@ export const metadata = {
 export default function NotFound() {
   return (
     <div className="flex min-h-screen w-full flex-col">
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
       <SiteHeader />
 
-      <main className="flex flex-1 w-full items-center justify-center px-4 py-4 sm:px-6 sm:py-6">
+      <main id="main-content" className="flex flex-1 w-full items-center justify-center px-4 py-4 sm:px-6 sm:py-6">
         <div className="flex w-full max-w-180 flex-col items-center justify-center gap-6 sm:gap-8">
           <div className="flex w-full flex-col items-center justify-start gap-3 text-center sm:gap-4">
             <div className="inline-flex items-center gap-2 rounded-none border border-[var(--am-danger)] bg-[var(--am-surface)] px-2.5 py-1 sm:px-3 sm:py-1.2">

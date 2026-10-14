@@ -11,16 +11,16 @@ import {
   getPublicTechnologies,
 } from "@/lib/portfolio-data";
 import type { ProjectMediaItem } from "@/lib/portfolio-data";
-import { canonicalUrl, jsonLdScript, pageMetadata } from "@/lib/seo";
+import { DEFAULT_SITE_DESCRIPTION, canonicalUrl, jsonLdScript, pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const site = await getPublicSiteData();
-  const description =
-    site.description || "A portfolio of projects, experience, and skills.";
+  const description = site.description || DEFAULT_SITE_DESCRIPTION;
   const base = pageMetadata({
     path: "/",
     title: `${site.title} | ${site.name}`,
     description,
+    locale: site.locale,
   });
 
   return {
@@ -110,7 +110,10 @@ export default async function HomePage() {
         <section className="hero-panel">
           <div className="hero-main">
             <div className="hero-copy">
-              <h1>{site.title}</h1>
+              <h1>
+                {site.title}{" "}
+                <span className="sr-only">— {site.name}</span>
+              </h1>
               {site.description ? <p>{site.description}</p> : null}
 
               <div className="hero-actions">

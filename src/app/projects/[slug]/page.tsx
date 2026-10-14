@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { SectionHeading } from "@/components/section-heading";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { getProjectBySlug, getPublicProjects } from "@/lib/portfolio-data";
+import { getProjectBySlug, getPublicProjects, getPublicSiteData } from "@/lib/portfolio-data";
 import { renderMarkdown } from "@/lib/markdown";
 import type { ProjectMediaItem } from "@/lib/portfolio-data";
 import { canonicalUrl, jsonLdScript, pageMetadata } from "@/lib/seo";
@@ -24,7 +24,10 @@ export async function generateMetadata({
   params,
 }: ProjectPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const project = await getProjectBySlug(slug);
+  const [project, site] = await Promise.all([
+    getProjectBySlug(slug),
+    getPublicSiteData(),
+  ]);
 
   if (!project) {
     return {
@@ -41,6 +44,7 @@ export async function generateMetadata({
       title: project.title,
       description,
       ogType: "article",
+      locale: site.locale,
     }),
   };
 }

@@ -14,10 +14,12 @@ import {
 import { canonicalUrl, jsonLdScript, pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const site = await getPublicSiteData();
   return pageMetadata({
     path: "/about",
     title: "About",
     description: "Background, experience, education, and skills.",
+    locale: site.locale,
   });
 }
 

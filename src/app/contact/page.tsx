@@ -9,10 +9,12 @@ import { getPublicSiteData } from "@/lib/portfolio-data";
 import { canonicalUrl, jsonLdScript, pageMetadata } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
+  const site = await getPublicSiteData();
   return pageMetadata({
     path: "/contact",
     title: "Contact",
     description: "Contact Amiracle about opportunities, projects, or questions.",
+    locale: site.locale,
   });
 }
 

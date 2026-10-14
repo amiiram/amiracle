@@ -78,6 +78,10 @@ export type PublicSiteData = {
   description: string;
   email: string;
   aboutMarkdown: string;
+  /** BCP 47 language tag derived from `SiteSettings.defaultLocale`. */
+  locale: string;
+  /** Stored `ThemeMode` (`system`/`light`/`dark`), used as the default theme. */
+  themeMode: "system" | "light" | "dark";
   socialLinks: SocialLink[];
 };
 
@@ -87,6 +91,8 @@ const defaultSiteData: PublicSiteData = {
   description: "",
   email: "",
   aboutMarkdown: "",
+  locale: "en",
+  themeMode: "system",
   socialLinks: [],
 };
 
@@ -115,6 +121,8 @@ const loadPublicSiteData = unstable_cache(
       description: settings?.description?.trim() || "",
       email: settings?.email?.trim() || "",
       aboutMarkdown: settings?.aboutMarkdown?.trim() || "",
+      locale: settings?.defaultLocale ?? defaultSiteData.locale,
+      themeMode: settings?.themeMode ?? defaultSiteData.themeMode,
       socialLinks: links.map((link) => ({
         id: link.id,
         platform: link.platform,

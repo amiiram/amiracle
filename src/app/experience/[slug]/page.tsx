@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { SectionHeading } from "@/components/section-heading";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { getPublicExperienceBySlug, getPublicExperiences } from "@/lib/portfolio-data";
+import { getPublicExperienceBySlug, getPublicExperiences, getPublicSiteData } from "@/lib/portfolio-data";
 import { renderMarkdown } from "@/lib/markdown";
 import { canonicalUrl, jsonLdScript, pageMetadata } from "@/lib/seo";
 
@@ -26,7 +26,10 @@ export async function generateMetadata({
   params,
 }: ExperiencePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const experience = await getPublicExperienceBySlug(slug);
+  const [experience, site] = await Promise.all([
+    getPublicExperienceBySlug(slug),
+    getPublicSiteData(),
+  ]);
 
   if (!experience) {
     return {
@@ -48,6 +51,7 @@ export async function generateMetadata({
       title,
       description,
       ogType: "article",
+      locale: site.locale,
     }),
   };
 }

@@ -3,7 +3,13 @@ import { DM_Mono, Instrument_Sans } from "next/font/google";
 import Script from "next/script";
 import { getPublicSiteData } from "@/lib/portfolio-data";
 import { getPublicSiteUrl } from "@/lib/env";
-import { SITE_LOCALE, TWITTER_IMAGE_URL, absoluteOgImage, jsonLdScript } from "@/lib/seo";
+import {
+  DEFAULT_SITE_DESCRIPTION,
+  TWITTER_IMAGE_URL,
+  absoluteOgImage,
+  jsonLdScript,
+  ogLocaleFor,
+} from "@/lib/seo";
 import "./globals.css";
 
 const instrumentSans = Instrument_Sans({
@@ -32,8 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
     getPublicSiteData(),
     getPublicSiteUrl(),
   ]);
-  const description =
-    site.description || "A portfolio of projects, experience, and skills.";
+  const description = site.description || DEFAULT_SITE_DESCRIPTION;
 
   return {
     metadataBase: siteUrl ? new URL(siteUrl) : undefined,
@@ -62,7 +67,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: site.name,
       siteName: site.name,
       description,
-      locale: SITE_LOCALE,
+      locale: ogLocaleFor(site.locale),
       ...(siteUrl ? { url: siteUrl } : {}),
       type: "website",
       images: [
@@ -134,8 +139,8 @@ export default async function RootLayout({
 
   return (
     <html
-      lang="en"
-      data-theme="dark"
+      lang={site.locale}
+      data-theme={site.themeMode === "system" ? "dark" : site.themeMode}
       className={`${instrumentSans.variable} ${dmMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
@@ -151,12 +156,24 @@ export default async function RootLayout({
           />
         ) : null}
         {children}
-        <Script id="theme-preference" strategy="beforeInteractive">
+        <Script
+          id="theme-preference"
+          strategy="beforeInteractive"
+          data-default-theme={site.themeMode}
+        >
           {`try {
-  const theme = window.localStorage.getItem("amiracle-theme");
-  if (theme === "light" || theme === "dark") {
-    document.documentElement.dataset.theme = theme;
-  }
+  const stored = window.localStorage.getItem("amiracle-theme");
+  // A saved choice always wins; otherwise fall back to the admin's default
+  // (system follows the OS, light/dark pin the theme).
+  const configured = document.currentScript.dataset.defaultTheme ?? "system";
+  const fallback =
+    configured === "light" || configured === "dark"
+      ? configured
+      : window.matchMedia("(prefers-color-scheme: light)").matches
+        ? "light"
+        : "dark";
+  const theme = stored === "light" || stored === "dark" ? stored : fallback;
+  document.documentElement.dataset.theme = theme;
 } catch {
   document.documentElement.dataset.theme = "dark";
 }`}
